@@ -14,7 +14,7 @@ const pick = <T>(list: readonly T[], value: number): T =>
 
 /** Cour pavée au centre de la carte, futur emplacement de la distillerie. */
 function isCourtyard(col: number, row: number): boolean {
-  const half = 8;
+  const half = 6;
   const cx = MAP.cols / 2;
   const cy = MAP.rows / 2;
   return Math.abs(col + 0.5 - cx) <= half && Math.abs(row + 0.5 - cy) <= half;

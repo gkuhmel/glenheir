@@ -2,7 +2,7 @@
 export const ZOOM = {
   min: 0.25,
   max: 3,
-  initial: 1,
+  initial: 0.7,
   /** Sensibilité de la molette / du pincement au trackpad. */
   wheelSensitivity: 0.0015,
 } as const;
