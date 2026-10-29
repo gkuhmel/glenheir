@@ -39,7 +39,7 @@ describe('sauvegarde', () => {
   });
 });
 
-describe('migration v1 → v2', () => {
+describe('migrations v1 → v3', () => {
   it('reprend une partie de l’étape 1 sans la perdre', () => {
     const v1 = JSON.stringify({
       version: 1,
@@ -52,6 +52,11 @@ describe('migration v1 → v2', () => {
     expect(state.finance).toEqual({ cash: 50_000, loans: [], negativeMonths: 0, bankrupt: false });
     expect(state.staff).toHaveLength(1);
     expect(state.journal).toEqual({ entries: [], monthly: [] });
+    expect(state.building.rooms).toHaveLength(5);
+    expect(state.warehouses).toHaveLength(1);
+    const ids = [...state.staff, ...state.building.rooms, ...state.warehouses].map((x) => x.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(state.nextId).toBe(Math.max(...ids) + 1);
   });
 });
 

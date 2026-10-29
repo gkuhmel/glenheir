@@ -2,6 +2,7 @@ import { EXCISE, FINANCE, SALARIES } from '../../data/balance';
 import { compactJournal, recordTransaction, roundMoney, type Channel } from '../journal';
 import type { Employee, GameState } from '../state';
 import type { SimEvent } from '../tick';
+import { propertyValue } from './building';
 
 const MONTHLY_RATE = FINANCE.loan.annualRate / 12;
 
@@ -80,13 +81,20 @@ function checkBankruptcy(state: GameState, events: SimEvent[]): void {
   }
 }
 
-/** Échéances du 1er du mois : salaires, prêts, contrôle de faillite, archivage du journal. */
+/** Échéances du 1er du mois : salaires, entretien, prêts, contrôle de faillite, archivage du journal. */
 export function runMonthlyFinance(state: GameState): SimEvent[] {
   const events: SimEvent[] = [];
   const payroll = monthlyPayroll(state);
   if (payroll > 0) {
     recordTransaction(state, -payroll, 'salaries');
     events.push({ type: 'salariesPaid', hour: state.time.hour, amount: payroll });
+  }
+  const maintenance = roundMoney(
+    propertyValue(state.building, state.warehouses) * FINANCE.maintenanceMonthlyRate,
+  );
+  if (maintenance > 0) {
+    recordTransaction(state, -maintenance, 'maintenance');
+    events.push({ type: 'maintenancePaid', hour: state.time.hour, amount: maintenance });
   }
   payLoans(state, events);
   checkBankruptcy(state, events);

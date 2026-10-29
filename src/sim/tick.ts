@@ -1,3 +1,4 @@
+import type { RoomType } from '../data/content';
 import type { Rng } from './rng';
 import { createRng } from './rng';
 import type { GameState } from './state';
@@ -14,7 +15,12 @@ export type SimEvent =
   | { type: 'loanPaid'; hour: number; loanId: number; amount: number }
   | { type: 'loanRepaid'; hour: number; loanId: number }
   | { type: 'bankruptcyWarning'; hour: number; monthsLeft: number }
-  | { type: 'bankrupt'; hour: number };
+  | { type: 'bankrupt'; hour: number }
+  | { type: 'maintenancePaid'; hour: number; amount: number }
+  | { type: 'roomRestored'; hour: number; roomId: number }
+  | { type: 'slotPurchased'; hour: number; roomId: number }
+  | { type: 'roomBuilt'; hour: number; roomId: number; roomType: RoomType }
+  | { type: 'warehouseRestored'; hour: number; warehouseId: number };
 
 /**
  * Avance l'état d'une heure de jeu (modifie `state` en place) et renvoie les

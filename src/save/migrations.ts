@@ -1,8 +1,10 @@
+import { createStartingBuilding, createStartingWarehouse } from '../sim/systems/building';
+
 /** Une migration transforme l'état sauvegardé de la version N vers N + 1. */
 export type Migration = (state: unknown) => unknown;
 
 /** Version actuelle du format de sauvegarde. */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 /**
  * Migrations indexées par version de départ : `migrations[1]` transforme un
@@ -20,6 +22,18 @@ export const migrations: Record<number, Migration> = {
       staff: [{ id: 1, role: 'worker', level: 1 }],
       journal: { entries: [], monthly: [] },
       nextId: 2,
+    };
+  },
+  // v2 → v3 (étape 3) : distillerie en ruine et premier chai.
+  2: (state) => {
+    const old = state as { nextId: number };
+    const building = createStartingBuilding(old.nextId);
+    const warehouseId = old.nextId + building.rooms.length;
+    return {
+      ...old,
+      building,
+      warehouses: [createStartingWarehouse(warehouseId)],
+      nextId: warehouseId + 1,
     };
   },
 };

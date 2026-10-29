@@ -40,6 +40,10 @@ function assertGameState(value: unknown): asserts value is GameState {
     throw new Error('journal invalide');
   }
   if (!isFiniteNumber(value.nextId)) throw new Error('identifiants invalides');
+  const building = value.building;
+  if (!isRecord(building) || !Array.isArray(building.rooms))
+    throw new Error('distillerie invalide');
+  if (!Array.isArray(value.warehouses)) throw new Error('chais invalides');
 }
 
 /** Lit une sauvegarde texte, applique les migrations et valide le résultat. */

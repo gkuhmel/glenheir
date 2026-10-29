@@ -55,6 +55,47 @@ export const SALARIES = {
 /** Personnel au début de partie (jalon 1 « La ruine »). */
 export const STARTING_STAFF = [{ role: 'worker', level: 1 }] as const;
 
+/** Distillerie : grille de salles et coûts d'agrandissement. */
+export const BUILDING = {
+  /** Colonnes de la grille (emplacements de large). */
+  columns: 8,
+  /** Niveaux : -1 = cave, 0 = rez-de-chaussée, 1 = étage. */
+  minLevel: -1,
+  maxLevel: 1,
+  /** Colonnes des 5 salles en ruine du rez-de-chaussée au départ. */
+  startColumn: 1,
+  /** Prix du premier emplacement acheté, puis +25 % par emplacement déjà acheté. */
+  slotBaseCost: 4_000,
+  slotCostGrowth: 1.25,
+  /** Une salle construite à neuf coûte 1,5 fois son prix de restauration. */
+  newRoomMultiplier: 1.5,
+  /** Salles identiques voisines fusionnées au maximum. */
+  maxMerge: 3,
+  /** Efficacité gagnée par salle supplémentaire dans une fusion. */
+  mergeBonus: 0.1,
+} as const;
+
+/** Coût de chaque type de salle (restauration, ou construction pour les salles neuves). */
+export const ROOM_COSTS = {
+  malting: 8_000,
+  mashing: 10_000,
+  fermentation: 6_000,
+  stillHouse: 12_000,
+  reception: 20_000,
+  ginWorkshop: 7_000,
+  tasting: 5_000,
+  shop: 6_000,
+  cafe: 6_000,
+  toilets: 1_500,
+  staffRoom: 4_000,
+} as const;
+
+/** Chais : bâtiments séparés sur la carte. */
+export const WAREHOUSE = {
+  restoreCost: 6_000,
+  startPlaces: 40,
+} as const;
+
 export const OFFLINE = {
   /** Durée minimale de rattrapage (heures de jeu) pour afficher « Pendant ton absence ». */
   summaryMinHours: 24,
@@ -69,6 +110,8 @@ export const MAP = {
   terrainSeed: 1789,
   /** Cour de la distillerie en ruine, en tuiles. */
   courtyard: { x: 27, y: 25, width: 10, height: 9 },
+  /** Emprise du premier chai, à l'est de la cour, en tuiles. */
+  warehouse: { x: 39.5, y: 24.5, width: 3.5, height: 9 },
 } as const;
 
 export const SAVE = {
