@@ -52,3 +52,12 @@ export function monthIndex(elapsedHours: number): number {
     (START_OFFSET - YEAR_START_OFFSET + Math.floor(elapsedHours)) / HOURS_PER_MONTH,
   );
 }
+
+/** Heure de jeu (écoulée) du prochain jour donné à minuit, strictement après `fromHour`. */
+export function nextDateHour(fromHour: number, month: number, day: number): number {
+  const absolute = START_OFFSET + Math.floor(fromHour);
+  const yearStart = Math.floor(absolute / HOURS_PER_YEAR) * HOURS_PER_YEAR;
+  let target = yearStart + (month - 1) * HOURS_PER_MONTH + (day - 1) * TIME.hoursPerDay;
+  if (target <= absolute) target += HOURS_PER_YEAR;
+  return target - START_OFFSET;
+}

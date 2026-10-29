@@ -26,4 +26,18 @@ describe('résumé d’absence', () => {
     const summary = summarizeAbsence(state, 0, events);
     expect(summary.notable.map((e) => e.type)).toEqual(['bankruptcyWarning']);
   });
+
+  it('totalise la production de la période', () => {
+    const state = createInitialState(1);
+    const events = [
+      { type: 'malted', hour: 1, roomId: 1, tonnes: 3.2 },
+      { type: 'distilled', hour: 2, roomId: 2, lpa: 400 },
+      { type: 'distilled', hour: 3, roomId: 2, lpa: 350.5 },
+    ] as const;
+    expect(summarizeAbsence(state, 0, [...events]).produced).toEqual({
+      barley: 0,
+      malt: 3.2,
+      newMake: 750.5,
+    });
+  });
 });

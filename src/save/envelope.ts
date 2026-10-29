@@ -44,6 +44,19 @@ function assertGameState(value: unknown): asserts value is GameState {
   if (!isRecord(building) || !Array.isArray(building.rooms))
     throw new Error('distillerie invalide');
   if (!Array.isArray(value.warehouses)) throw new Error('chais invalides');
+  if (!Array.isArray(value.machines) || !Array.isArray(value.fields))
+    throw new Error('production invalide');
+  const stocks = value.stocks;
+  if (
+    !isRecord(stocks) ||
+    !isRecord(stocks.barley) ||
+    !isRecord(stocks.malt) ||
+    !isRecord(stocks.newMake)
+  ) {
+    throw new Error('stocks invalides');
+  }
+  if (value.terroir !== 'speyside' && value.terroir !== 'islay')
+    throw new Error('terroir invalide');
 }
 
 /** Lit une sauvegarde texte, applique les migrations et valide le résultat. */

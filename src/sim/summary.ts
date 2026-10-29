@@ -10,6 +10,8 @@ export interface AbsenceSummary {
   byCategory: Partial<Record<Category, number>>;
   /** Événements à signaler au joueur (prêts soldés, risque de faillite…). */
   notable: SimEvent[];
+  /** Production de la période : orge récoltée et malt en tonnes, new make en LPA. */
+  produced: { barley: number; malt: number; newMake: number };
 }
 
 const NOTABLE: ReadonlySet<SimEvent['type']> = new Set([
@@ -18,7 +20,10 @@ const NOTABLE: ReadonlySet<SimEvent['type']> = new Set([
   'loanRepaid',
   'bankruptcyWarning',
   'bankrupt',
+  'fieldRipe',
 ]);
+
+const round = (value: number) => Math.round(value * 10) / 10;
 
 export function summarizeAbsence(
   state: GameState,
@@ -39,5 +44,10 @@ export function summarizeAbsence(
     expenses: roundMoney(expenses),
     byCategory,
     notable: events.filter((e) => NOTABLE.has(e.type)),
+    produced: {
+      barley: round(events.reduce((sum, e) => sum + (e.type === 'harvested' ? e.tonnes : 0), 0)),
+      malt: round(events.reduce((sum, e) => sum + (e.type === 'malted' ? e.tonnes : 0), 0)),
+      newMake: round(events.reduce((sum, e) => sum + (e.type === 'distilled' ? e.lpa : 0), 0)),
+    },
   };
 }

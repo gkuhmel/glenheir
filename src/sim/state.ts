@@ -1,5 +1,8 @@
 import { ECONOMY, STARTING_STAFF } from '../data/balance';
 import type { Journal } from './journal';
+import { emptyLot, type Lot } from './profile';
+import { createStartingFields, type Field } from './systems/fields';
+import { syncMachines, type Machine } from './systems/production';
 import {
   createStartingBuilding,
   createStartingWarehouse,
@@ -8,6 +11,15 @@ import {
 } from './systems/building';
 
 export type StaffRole = 'worker' | 'distiller' | 'cellarMaster' | 'guide';
+
+export type Terroir = 'speyside' | 'islay';
+
+/** Matières en stock : orge et malt en tonnes, new make en litres d'alcool pur (LPA). */
+export interface Stocks {
+  barley: Lot;
+  malt: Lot;
+  newMake: Lot;
+}
 
 export interface Employee {
   id: number;
@@ -41,6 +53,9 @@ export interface Finance {
 export interface GameState {
   /** État du générateur aléatoire de la partie. */
   rngState: number;
+  terroir: Terroir;
+  /** Faux tant que le joueur n'a pas choisi son terroir (écran de nouvelle partie). */
+  terroirChosen: boolean;
   time: {
     /** Heures de jeu écoulées depuis le début de partie (1er mars an 1, 8 h). */
     hour: number;
@@ -52,6 +67,10 @@ export interface GameState {
   building: Building;
   /** Chais, bâtiments séparés sur la carte. */
   warehouses: Warehouse[];
+  /** Machines des salles de production. */
+  machines: Machine[];
+  fields: Field[];
+  stocks: Stocks;
   journal: Journal;
   /** Prochain identifiant libre (employés, prêts…). */
   nextId: number;
@@ -63,15 +82,24 @@ export function createInitialState(seed: number): GameState {
   const building = createStartingBuilding(nextId);
   nextId += building.rooms.length;
   const warehouse = createStartingWarehouse(nextId++);
-  return {
+  const fields = createStartingFields(nextId);
+  nextId += fields.length;
+  const state: GameState = {
     rngState: seed >>> 0,
+    terroir: 'speyside',
+    terroirChosen: false,
     time: { hour: 0 },
     finance: { cash: ECONOMY.startingCash, loans: [], negativeMonths: 0, bankrupt: false },
     renown: ECONOMY.startingRenown,
     staff,
     building,
     warehouses: [warehouse],
+    machines: [],
+    fields,
+    stocks: { barley: emptyLot(), malt: emptyLot(), newMake: emptyLot() },
     journal: { entries: [], monthly: [] },
     nextId,
   };
+  syncMachines(state, true);
+  return state;
 }

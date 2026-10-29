@@ -1,10 +1,14 @@
+import { emptyLot } from '../sim/profile';
+import type { GameState } from '../sim/state';
 import { createStartingBuilding, createStartingWarehouse } from '../sim/systems/building';
+import { createStartingFields } from '../sim/systems/fields';
+import { syncMachines } from '../sim/systems/production';
 
 /** Une migration transforme l'état sauvegardé de la version N vers N + 1. */
 export type Migration = (state: unknown) => unknown;
 
 /** Version actuelle du format de sauvegarde. */
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /**
  * Migrations indexées par version de départ : `migrations[1]` transforme un
@@ -35,6 +39,22 @@ export const migrations: Record<number, Migration> = {
       warehouses: [createStartingWarehouse(warehouseId)],
       nextId: warehouseId + 1,
     };
+  },
+  // v3 → v4 (étape 4) : terroir (Speyside pour les parties en cours), champs, machines, stocks.
+  3: (state) => {
+    const old = state as GameState;
+    const fields = createStartingFields(old.nextId);
+    const next = {
+      ...old,
+      terroir: 'speyside',
+      terroirChosen: true,
+      machines: [],
+      fields,
+      stocks: { barley: emptyLot(), malt: emptyLot(), newMake: emptyLot() },
+      nextId: old.nextId + fields.length,
+    } as GameState;
+    syncMachines(next, true);
+    return next;
   },
 };
 

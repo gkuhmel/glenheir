@@ -96,6 +96,114 @@ export const WAREHOUSE = {
   startPlaces: 40,
 } as const;
 
+/** Terroirs choisis au démarrage. Les effets visiteurs et export servent aux étapes 8 et 9. */
+export const TERROIRS = {
+  speyside: {
+    barleyYield: 1,
+    /** Eau douce : +10 fruité au brassage. */
+    water: { fruity: 10 },
+    /** Part payée du prix de la tourbe (Islay : tourbe locale gratuite). */
+    peatCostFactor: 1,
+    plotPrice: 8_000,
+    visitors: 1.2,
+    exportTransport: 1,
+    peatedPriceBonus: 0,
+    angelsShare: 0.02,
+  },
+  islay: {
+    barleyYield: 0.8,
+    water: {},
+    peatCostFactor: 0,
+    plotPrice: 5_000,
+    visitors: 0.8,
+    exportTransport: 1.1,
+    peatedPriceBonus: 0.1,
+    angelsShare: 0.015,
+  },
+} as const;
+
+/** Profil aromatique de départ d'un lot d'orge (6 axes et qualité, de 0 à 100). */
+export const BASE_PROFILE = {
+  fruity: 20,
+  floral: 15,
+  peaty: 0,
+  spicy: 15,
+  woody: 0,
+  sweet: 20,
+  quality: 40,
+} as const;
+
+export const FIELDS = {
+  startPlots: 2,
+  hectaresPerPlot: 1,
+  tonnesPerHectare: 6,
+  /** Météo de l'année : rendement ±20 %. */
+  weatherSpread: 0.2,
+  /** Semis au printemps (mars, avril, mai). */
+  sowMonths: [3, 4, 5],
+  /** Orge mûre le 15 août, récoltée d'office le 1er septembre si le joueur ne l'a pas fait. */
+  ripe: { month: 8, day: 15 },
+  autoHarvest: { month: 9, day: 1 },
+} as const;
+
+export const BARLEY_VARIETIES = {
+  concerto: { yield: 1, seedCostPerHectare: 300, profile: {} },
+  goldenPromise: { yield: 0.75, seedCostPerHectare: 500, profile: { sweet: 10, quality: 5 } },
+  bere: { yield: 0.55, seedCostPerHectare: 800, profile: { spicy: 10, quality: 8 } },
+} as const;
+
+export const MARKET = {
+  /** Orge achetée au marché (sans bonus de variété), prix selon la saison. */
+  barleyPricePerTonne: 250,
+  barleySeason: { spring: 1.1, summer: 1.15, autumn: 0.88, winter: 1 },
+  /** New make vendu en vrac aux assembleurs : prix fixe, non taxé, volume illimité. */
+  newMakePricePerLpa: 4,
+} as const;
+
+export const PRODUCTION = {
+  malting: {
+    /** Orge mise à germer par lot et par salle. */
+    batchTonnes: 4,
+    minTonnes: 0.5,
+    maltPerBarley: 0.8,
+    days: 5,
+    peat: {
+      none: { peaty: 0, costPerTonne: 0 },
+      light: { peaty: 25, costPerTonne: 40 },
+      heavy: { peaty: 55, costPerTonne: 90 },
+    },
+  },
+  mashing: {
+    batchTonnes: 1,
+    minTonnes: 0.2,
+    litresPerTonne: 5_000,
+    days: 1,
+  },
+  fermentation: {
+    vesselsPerRoom: 2,
+    shortDays: 2,
+    longDays: 4,
+    /** Fermentation longue : +10 fruité, −5 % de volume. */
+    longFruity: 10,
+    longVolumeLoss: 0.05,
+  },
+  distillation: {
+    /** 5 000 L de bière de distillation donnent environ 400 L d'alcool pur. */
+    lpaPerLitre: 0.08,
+    energyPerDay: 120,
+    restoreOldStillsCost: 8_000,
+    stills: {
+      small: { cost: 25_000, litresPerDay: 2_500, profile: { spicy: 6, sweet: 4 } },
+      medium: { cost: 60_000, litresPerDay: 5_000, profile: { floral: 6, fruity: 6 } },
+    },
+    cuts: {
+      narrow: { volume: 0.75, quality: 10, profile: {} },
+      medium: { volume: 1, quality: 0, profile: {} },
+      wide: { volume: 1.25, quality: -10, profile: { spicy: 6, peaty: 3 } },
+    },
+  },
+} as const;
+
 export const OFFLINE = {
   /** Durée minimale de rattrapage (heures de jeu) pour afficher « Pendant ton absence ». */
   summaryMinHours: 24,

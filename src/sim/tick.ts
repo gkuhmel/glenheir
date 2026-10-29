@@ -2,7 +2,9 @@ import type { RoomType } from '../data/content';
 import type { Rng } from './rng';
 import { createRng } from './rng';
 import type { GameState } from './state';
+import { runFields } from './systems/fields';
 import { runMonthlyFinance } from './systems/finance';
+import { runProduction } from './systems/production';
 import { toGameDate, type Season } from './time';
 
 export type SimEvent =
@@ -20,18 +22,28 @@ export type SimEvent =
   | { type: 'roomRestored'; hour: number; roomId: number }
   | { type: 'slotPurchased'; hour: number; roomId: number }
   | { type: 'roomBuilt'; hour: number; roomId: number; roomType: RoomType }
-  | { type: 'warehouseRestored'; hour: number; warehouseId: number };
+  | { type: 'warehouseRestored'; hour: number; warehouseId: number }
+  | { type: 'terroirChosen'; hour: number }
+  | { type: 'sown'; hour: number; fieldId: number }
+  | { type: 'fieldRipe'; hour: number; fieldId: number }
+  | { type: 'harvested'; hour: number; fieldId: number; tonnes: number }
+  | { type: 'batchStarted'; hour: number; roomId: number }
+  | { type: 'malted'; hour: number; roomId: number; tonnes: number }
+  | { type: 'mashed'; hour: number; roomId: number; litres: number }
+  | { type: 'distilled'; hour: number; roomId: number; lpa: number }
+  | { type: 'stillsReady'; hour: number; roomId: number }
+  | { type: 'machineChanged'; hour: number; roomId: number }
+  | { type: 'traded'; hour: number };
 
 /**
  * Avance l'état d'une heure de jeu (modifie `state` en place) et renvoie les
  * événements produits. Les systèmes s'appliquent toujours dans le même ordre.
  */
 export function tick(state: GameState, rng: Rng): SimEvent[] {
-  void rng; // Utilisé par les systèmes aléatoires (météo, événements) des étapes suivantes.
   state.time.hour += 1;
   const hour = state.time.hour;
   const date = toGameDate(hour);
-  const events: SimEvent[] = [];
+  const events: SimEvent[] = runProduction(state);
   if (date.hour !== 0) return events;
 
   events.push({ type: 'dayStarted', hour });
@@ -40,6 +52,7 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
   if (date.season !== previous.season) {
     events.push({ type: 'seasonStarted', hour, season: date.season });
   }
+  events.push(...runFields(state, rng));
   if (date.day === 1) {
     events.push({ type: 'monthStarted', hour, month: date.month });
     events.push(...runMonthlyFinance(state));
