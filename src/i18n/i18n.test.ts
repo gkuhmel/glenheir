@@ -11,7 +11,9 @@ describe('i18n', () => {
   });
 
   it('remplace les paramètres', () => {
-    expect(t('date.full', { day: '1er', month: 'mars', year: 1 })).toBe('1er mars · An 1');
+    expect(t('date.detail', { year: 1, season: 'Printemps', hour: 8 })).toBe(
+      'An 1 · Printemps · 8 h',
+    );
   });
 
   it('formate les livres sterling à la française', () => {

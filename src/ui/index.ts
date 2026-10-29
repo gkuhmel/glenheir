@@ -4,7 +4,14 @@ import type { GameState } from '../sim/state';
 import { createBottomBar, type TabId } from './bottombar';
 import { createDrawer } from './drawer';
 import { createTopBar } from './topbar';
+import '@fontsource/alegreya-sans/latin-400.css';
+import '@fontsource/alegreya-sans/latin-500.css';
+import '@fontsource/alegreya-sans/latin-700.css';
+import '@fontsource/uncial-antiqua/latin-400.css';
 import './styles.css';
+
+/** Hauteur des bandeaux d'entrelacs collés aux barres (voir styles.css). */
+const KNOT_BAND_HEIGHT = 14;
 
 export interface Ui {
   update(state: GameState): void;
@@ -37,8 +44,8 @@ export function mountUi(root: HTMLElement, onSecretGesture: () => void): Ui {
   return {
     update: (state) => topBar.update(state),
     insets: () => ({
-      top: topBar.element.getBoundingClientRect().bottom,
-      bottom: window.innerHeight - bottomBar.element.getBoundingClientRect().top,
+      top: topBar.element.getBoundingClientRect().bottom + KNOT_BAND_HEIGHT,
+      bottom: window.innerHeight - bottomBar.element.getBoundingClientRect().top + KNOT_BAND_HEIGHT,
       left: 0,
       right: 0,
     }),

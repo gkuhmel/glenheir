@@ -1,4 +1,5 @@
 import { t } from '../i18n';
+import { TRIQUETRA } from './icons';
 
 export interface Drawer {
   element: HTMLElement;
@@ -15,9 +16,11 @@ export function createDrawer(onClose: () => void): Drawer {
   element.innerHTML = `
     <div class="drawer-handle" aria-hidden="true"></div>
     <div class="drawer-header">
+      ${TRIQUETRA}
       <h2 class="drawer-title"></h2>
       <button type="button" class="icon-button drawer-close"></button>
     </div>
+    <div class="drawer-rule" aria-hidden="true"></div>
     <div class="drawer-body"></div>`;
   const title = element.querySelector<HTMLElement>('.drawer-title')!;
   const body = element.querySelector<HTMLElement>('.drawer-body')!;

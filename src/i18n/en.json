@@ -4,8 +4,7 @@
   "topbar.cash": "Cash",
   "topbar.renown": "Renown",
   "date.dayFirst": "1",
-  "date.full": "{month} {day} · Year {year}",
-  "date.hour": "{hour}:00",
+  "date.full": "{month} {day}",
   "month.1": "January",
   "month.2": "February",
   "month.3": "March",
@@ -48,5 +47,6 @@
   "debug.importError": "Import failed: {error}",
   "debug.saved": "Game saved.",
   "debug.state": "Raw state",
-  "debug.storage": "Storage: {backend}"
+  "debug.storage": "Storage: {backend}",
+  "date.detail": "Year {year} · {season} · {hour}:00"
 }

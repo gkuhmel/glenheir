@@ -1,7 +1,7 @@
 .debug-fab {
   position: absolute;
   right: calc(var(--safe-right) + 10px);
-  top: calc(var(--safe-top) + 72px);
+  top: calc(var(--safe-top) + 84px);
   min-width: var(--touch);
   height: var(--touch);
   padding: 0 8px;
@@ -15,7 +15,7 @@
 
 .debug-panel {
   position: absolute;
-  top: calc(var(--safe-top) + 64px);
+  top: calc(var(--safe-top) + 80px);
   right: calc(var(--safe-right) + 8px);
   left: calc(var(--safe-left) + 8px);
   bottom: calc(var(--safe-bottom) + 72px);
@@ -63,8 +63,8 @@
 }
 
 .debug-panel button.is-active {
-  border-color: var(--amber);
-  color: var(--amber);
+  border-color: var(--brass-light);
+  color: var(--brass-light);
 }
 
 .debug-panel button.danger {

@@ -263,6 +263,7 @@ Tout est dessiné en code (formes vectorielles, dégradés, lumières) dans l'es
 - **Palette** : pierre grise et chaude, cuivre des alambics, vert des champs, ambre du whisky, bois sombre des fûts, ciel et brume écossais. Une palette par saison (vert vif en été, brun et gris en hiver).
 - **Lumière et ambiance** : reflets animés sur le cuivre, vapeur qui monte des alambics en marche, lumière chaude et tamisée dans le chai, pluie et brume selon la météo, cycle jour/nuit léger.
 - **Personnages** : silhouettes simples vues de dessus (tête + épaules), couleur selon le rôle, petite animation de marche. Bulles d'humeur au-dessus des visiteurs.
+- **Interface** : ambiance celtique — bois sombre veiné, filets et icônes en laiton, bandeaux d'entrelacs, tiroirs en parchemin, titres en écriture onciale (Uncial Antiqua), texte en Alegreya Sans.
 - **Ruine → restauration** : chaque bâtiment a un état « ruine » (murs fissurés, végétation) et un état restauré ; la transition est un moment de récompense visuelle.
 
 ### UX mobile (portrait)

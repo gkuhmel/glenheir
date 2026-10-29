@@ -1,22 +1,48 @@
 :root {
-  --bg: #1c211b;
-  --panel: rgba(31, 35, 30, 0.92);
-  --panel-solid: #262b24;
-  --border: rgba(232, 222, 200, 0.12);
-  --text: #efe8d8;
-  --text-muted: #b3ab98;
-  --amber: #e8b04a;
-  --copper: #c7774a;
-  --danger: #d9614c;
+  /* Bois sombre, laiton, parchemin : l'atelier d'une vieille distillerie. */
+  --wood-dark: #1f150e;
+  --wood: #2e2016;
+  --wood-light: #3d2b1d;
+  --brass: #c9a24a;
+  --brass-light: #ecd08a;
+  --brass-dark: #8a6a2a;
+  --copper: #c07a45;
+  --parchment: #eadfc4;
+  --parchment-dark: #d6c7a2;
+  --ink: #3a2717;
+  --ink-muted: #6e5638;
+  --text: #f2e7cd;
+  --text-muted: #bba88a;
+  --danger: #c4573f;
+  --panel: rgba(31, 21, 14, 0.94);
+  --panel-solid: #2e2016;
+  --border: rgba(201, 162, 74, 0.35);
   --radius: 14px;
   --touch: 44px;
+  --font-title: 'Uncial Antiqua', Georgia, serif;
+  --font-body: 'Alegreya Sans', -apple-system, 'Segoe UI', Roboto, sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Tresse celtique : deux brins qui passent alternativement dessus et dessous. */
+  --knot: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cg fill='none'%3E%3Cpath d='M0 9C6 9 6 3 12 3' stroke='%23140d08' stroke-width='4.4'/%3E%3Cpath d='M0 9C6 9 6 3 12 3' stroke='%23c9a24a' stroke-width='2'/%3E%3Cpath d='M0 3C6 3 6 9 12 9' stroke='%23140d08' stroke-width='4.4'/%3E%3Cpath d='M0 3C6 3 6 9 12 9' stroke='%23c9a24a' stroke-width='2'/%3E%3Cpath d='M12 9C18 9 18 3 24 3' stroke='%23140d08' stroke-width='4.4'/%3E%3Cpath d='M12 9C18 9 18 3 24 3' stroke='%23c9a24a' stroke-width='2'/%3E%3Cpath d='M12 3C18 3 18 9 24 9' stroke='%23140d08' stroke-width='4.4'/%3E%3Cpath d='M12 3C18 3 18 9 24 9' stroke='%23c9a24a' stroke-width='2'/%3E%3C/g%3E%3C/svg%3E");
+  /* Grain de papier pour le parchemin. */
+  --paper-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.25 0 0 0 0 0.12 0 0 0 0.12 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Veinage du bois des barres. */
+  --wood-grain:
+    repeating-linear-gradient(
+      100deg,
+      rgba(255, 220, 160, 0.025) 0 2px,
+      transparent 2px 9px,
+      rgba(0, 0, 0, 0.06) 9px 10px,
+      transparent 10px 17px
+    ),
+    linear-gradient(180deg, var(--wood-light), var(--wood) 55%, var(--wood-dark));
+
   color-scheme: dark;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-body);
 }
 
 * {
@@ -29,7 +55,7 @@ body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: var(--bg);
+  background: #1d2a1a;
   color: var(--text);
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
@@ -48,6 +74,17 @@ body {
   touch-action: none;
 }
 
+/* Vignettage doux : lumière d'Écosse, bords dans la brume. */
+#map::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgba(14, 18, 10, 0.55) 100%),
+    linear-gradient(180deg, rgba(235, 225, 200, 0.07), transparent 30%);
+}
+
 #ui {
   position: fixed;
   inset: 0;
@@ -63,6 +100,22 @@ button {
   color: inherit;
 }
 
+.icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon .fill {
+  fill: currentColor;
+  fill-opacity: 0.18;
+  stroke: none;
+}
+
 /* Barre du haut */
 .topbar {
   position: absolute;
@@ -71,54 +124,107 @@ button {
   right: 0;
   display: grid;
   grid-template-columns: auto auto 1fr;
-  gap: 16px;
+  gap: 14px;
   align-items: center;
-  padding: calc(var(--safe-top) + 8px) calc(var(--safe-right) + 14px) 8px
-    calc(var(--safe-left) + 14px);
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  padding: calc(var(--safe-top) + 6px) calc(var(--safe-right) + 12px) 6px
+    calc(var(--safe-left) + 12px);
+  background: var(--wood-grain);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+  background:
+    var(--knot) center / 24px 12px repeat-x,
+    var(--wood-dark);
+  box-shadow:
+    inset 0 1px 0 var(--brass-dark),
+    inset 0 -1px 0 var(--brass-dark),
+    0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .stat {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 7px;
   min-height: var(--touch);
-  justify-content: center;
-  line-height: 1.2;
+}
+
+.stat-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.icon-stat {
+  width: 26px;
+  height: 26px;
+  color: var(--brass);
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
 }
 
 .stat-label {
   font-size: 11px;
+  font-weight: 500;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
 .stat-value {
-  font-size: 16px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
 }
 
 .stat-cash .stat-value {
-  color: var(--amber);
+  color: var(--brass-light);
 }
 
 .stat-date {
+  justify-content: flex-end;
   text-align: right;
+}
+
+.stat-date .stat-text {
   align-items: flex-end;
 }
 
 .stat-date .stat-value {
-  font-size: 14px;
+  font-size: 18px;
+  color: var(--parchment);
+  white-space: nowrap;
 }
 
 .stat-date .stat-label {
+  white-space: nowrap;
   text-transform: none;
-  letter-spacing: 0;
-  font-size: 12px;
+  letter-spacing: 0.02em;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.season-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--brass-dark);
+  background: radial-gradient(circle at 35% 30%, var(--wood-light), var(--wood-dark));
+  color: var(--brass-light);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.12);
+}
+
+.icon-season {
+  width: 20px;
+  height: 20px;
 }
 
 /* Barre du bas */
@@ -130,51 +236,85 @@ button {
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  padding: 4px calc(var(--safe-right) + 4px) calc(var(--safe-bottom) + 4px)
+  padding: 6px calc(var(--safe-right) + 4px) calc(var(--safe-bottom) + 4px)
     calc(var(--safe-left) + 4px);
-  background: var(--panel-solid);
-  border-top: 1px solid var(--border);
+  background: var(--wood-grain);
+}
+
+.bottombar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 14px;
+  background:
+    var(--knot) center / 24px 12px repeat-x,
+    var(--wood-dark);
+  box-shadow:
+    inset 0 1px 0 var(--brass-dark),
+    inset 0 -1px 0 var(--brass-dark),
+    0 -4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .tab {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-height: 52px;
+  gap: 3px;
+  min-height: 54px;
   min-width: var(--touch);
   padding: 4px 0;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: none;
   color: var(--text-muted);
-  font-size: 11px;
   cursor: pointer;
+  transition: color 0.15s ease;
 }
 
-.tab svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.tab .icon {
+  width: 28px;
+  height: 28px;
+}
+
+.tab-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .tab.is-active {
-  color: var(--amber);
+  color: var(--brass-light);
+  background: radial-gradient(ellipse 60% 70% at 50% 40%, rgba(201, 162, 74, 0.2), transparent 70%);
+}
+
+.tab.is-active .icon {
+  filter: drop-shadow(0 0 6px rgba(236, 208, 138, 0.45));
+}
+
+/* Losange de laiton au-dessus de l'onglet actif. */
+.tab.is-active::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  width: 7px;
+  height: 7px;
+  background: var(--brass-light);
+  transform: rotate(45deg);
+  box-shadow: 0 0 6px rgba(236, 208, 138, 0.6);
 }
 
 .tab:focus-visible,
 .icon-button:focus-visible,
 .debug-panel button:focus-visible {
-  outline: 2px solid var(--amber);
+  outline: 2px solid var(--brass-light);
   outline-offset: 2px;
 }
 
-/* Tiroir */
+/* Tiroir en parchemin */
 .drawer {
   position: absolute;
   left: 0;
@@ -184,74 +324,130 @@ button {
   height: 55%;
   display: flex;
   flex-direction: column;
-  padding: 0 calc(var(--safe-right) + 16px) calc(var(--safe-bottom) + 80px)
-    calc(var(--safe-left) + 16px);
-  background: var(--panel-solid);
-  border-top: 1px solid var(--border);
-  border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.35);
+  padding: 0 calc(var(--safe-right) + 18px) calc(var(--safe-bottom) + 90px)
+    calc(var(--safe-left) + 18px);
+  color: var(--ink);
+  background:
+    var(--paper-grain),
+    radial-gradient(ellipse 80% 60% at 15% 0%, rgba(255, 250, 235, 0.55), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 90% 100%, rgba(150, 105, 45, 0.25), transparent 70%),
+    var(--parchment);
+  border-top: 3px solid var(--brass);
+  border-radius: 18px 18px 0 0;
+  box-shadow:
+    0 -10px 30px rgba(0, 0, 0, 0.5),
+    inset 0 0 40px rgba(120, 80, 30, 0.25);
   transform: translateY(100%);
   visibility: hidden;
   transition:
-    transform 0.25s ease,
-    visibility 0s linear 0.25s;
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 0.28s;
 }
 
 .drawer.is-open {
   transform: translateY(0);
   visibility: visible;
-  transition: transform 0.25s ease;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .drawer-handle {
-  width: 40px;
-  height: 4px;
-  margin: 8px auto 0;
-  border-radius: 2px;
-  background: var(--border);
+  width: 46px;
+  height: 5px;
+  margin: 9px auto 2px;
+  border-radius: 3px;
+  background: var(--parchment-dark);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
 .drawer-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
+}
+
+.ornament {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  stroke: var(--brass-dark);
 }
 
 .drawer-title {
+  flex: 1;
   margin: 0;
-  font-size: 18px;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--ink);
+}
+
+/* Filet orné : trait, losange, trait. */
+.drawer-rule {
+  position: relative;
+  height: 12px;
+  margin: 4px 0 10px;
+  background: linear-gradient(
+      90deg,
+      transparent,
+      var(--brass-dark) 15%,
+      var(--brass-dark) 85%,
+      transparent
+    )
+    center / 100% 1px no-repeat;
+}
+
+.drawer-rule::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: var(--parchment);
+  border: 1.5px solid var(--brass-dark);
+  transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  color: var(--text-muted);
+  font-size: 17px;
+  color: var(--ink-muted);
+  font-style: italic;
   user-select: text;
   -webkit-user-select: text;
+}
+
+.drawer-body p {
+  margin: 8px 0;
 }
 
 .icon-button {
   width: var(--touch);
   height: var(--touch);
-  border: 0;
+  border: 1.5px solid var(--brass-dark);
   border-radius: 50%;
-  background: none;
-  font-size: 18px;
+  background: radial-gradient(circle at 35% 30%, #f6eedb, var(--parchment-dark));
+  color: var(--ink);
+  font-size: 16px;
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 /* Messages */
 .toast {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 76px);
+  bottom: calc(var(--safe-bottom) + 90px);
   z-index: 5;
   max-width: calc(100% - 32px);
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: var(--panel-solid);
-  border: 1px solid var(--border);
-  font-size: 14px;
+  padding: 10px 16px;
+  border: 1.5px solid var(--brass);
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--paper-grain), var(--parchment);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  font-size: 15px;
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -260,5 +456,37 @@ button {
   .drawer,
   .drawer.is-open {
     transition: none;
+  }
+}
+
+/* Petits écrans (iPhone SE) : les icônes remplacent les libellés, toujours lus par VoiceOver. */
+@media (max-width: 374px) {
+  .topbar {
+    gap: 10px;
+    padding-left: calc(var(--safe-left) + 8px);
+    padding-right: calc(var(--safe-right) + 8px);
+  }
+
+  .stat-cash .stat-label,
+  .stat-renown .stat-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .stat {
+    gap: 5px;
+  }
+
+  .stat-date .stat-label {
+    font-size: 12px;
+  }
+
+  .season-icon {
+    width: 28px;
+    height: 28px;
   }
 }

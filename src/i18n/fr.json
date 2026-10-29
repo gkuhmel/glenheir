@@ -4,8 +4,7 @@
   "topbar.cash": "Trésorerie",
   "topbar.renown": "Renommée",
   "date.dayFirst": "1er",
-  "date.full": "{day} {month} · An {year}",
-  "date.hour": "{hour} h",
+  "date.full": "{day} {month}",
   "month.1": "janvier",
   "month.2": "février",
   "month.3": "mars",
@@ -48,5 +47,6 @@
   "debug.importError": "Import impossible : {error}",
   "debug.saved": "Partie sauvegardée.",
   "debug.state": "État brut",
-  "debug.storage": "Stockage : {backend}"
+  "debug.storage": "Stockage : {backend}",
+  "date.detail": "An {year} · {season} · {hour} h"
 }
