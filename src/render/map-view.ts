@@ -12,7 +12,10 @@ import {
 } from './camera';
 import { MAX_RESOLUTION, PALETTE, ZOOM } from './config';
 import { attachGestures } from './gestures';
-import { createGround } from './grid';
+import { createGrid } from './grid';
+import { createGround } from './ground';
+import { createScenery } from './scenery';
+import { generateTerrain } from '../sim/terrain';
 
 const WORLD: Size = { width: MAP.cols * MAP.tileSize, height: MAP.rows * MAP.tileSize };
 
@@ -22,6 +25,7 @@ const WORLD: Size = { width: MAP.cols * MAP.tileSize, height: MAP.rows * MAP.til
  */
 export class MapView {
   private camera: Camera = { x: 0, y: 0, zoom: ZOOM.initial };
+  private renderQueued = false;
   private readonly world = new Container();
   private readonly highlight = new Graphics();
 
@@ -34,6 +38,8 @@ export class MapView {
   static async create(host: HTMLElement, getInsets: () => Insets): Promise<MapView> {
     const app = new Application();
     await app.init({
+      // Rendu à la demande : la carte est statique tant que la caméra ne bouge pas.
+      autoStart: false,
       resizeTo: host,
       background: PALETTE.background,
       antialias: true,
@@ -52,7 +58,10 @@ export class MapView {
 
   private setup(): void {
     this.highlight.visible = false;
-    this.world.addChild(createGround(), this.highlight);
+    const terrain = generateTerrain();
+    const grid = createGrid();
+    grid.visible = false;
+    this.world.addChild(createGround(terrain), createScenery(terrain), grid, this.highlight);
     this.app.stage.addChild(this.world);
 
     this.camera = centerOn(
@@ -79,20 +88,33 @@ export class MapView {
     const row = Math.floor(point.y / MAP.tileSize);
     if (col < 0 || row < 0 || col >= MAP.cols || row >= MAP.rows) {
       this.highlight.visible = false;
+      this.requestRender();
       return;
     }
     this.highlight
       .clear()
       .rect(col * MAP.tileSize, row * MAP.tileSize, MAP.tileSize, MAP.tileSize)
-      .fill({ color: PALETTE.highlight, alpha: 0.25 })
-      .stroke({ width: 2, color: PALETTE.highlight });
+      .fill({ color: PALETTE.highlight, alpha: 0.18 })
+      .stroke({ width: 2, color: PALETTE.highlight, alpha: 0.9 });
     this.highlight.visible = true;
+    this.requestRender();
   }
 
   private apply(camera: Camera): void {
     this.camera = clampCamera(camera, this.viewSize, WORLD, this.getInsets());
     this.world.scale.set(this.camera.zoom);
     this.world.position.set(-this.camera.x * this.camera.zoom, -this.camera.y * this.camera.zoom);
+    this.requestRender();
+  }
+
+  /** Redessine à la prochaine image (une seule fois, même si plusieurs gestes arrivent). */
+  private requestRender(): void {
+    if (this.renderQueued) return;
+    this.renderQueued = true;
+    requestAnimationFrame(() => {
+      this.renderQueued = false;
+      this.app.render();
+    });
   }
 
   /** À appeler quand la taille des barres change. */
