@@ -42,3 +42,13 @@ export function toGameDate(elapsedHours: number): GameDate {
   const year = Math.floor((absolute - YEAR_START_OFFSET) / HOURS_PER_YEAR) + 1;
   return { year, month, day, hour, season: seasonOfMonth(month) };
 }
+
+/**
+ * Numéro du mois calendaire depuis le début de partie (0 = mars de l'an 1).
+ * Sert à regrouper le journal et à déclencher les échéances mensuelles.
+ */
+export function monthIndex(elapsedHours: number): number {
+  return Math.floor(
+    (START_OFFSET - YEAR_START_OFFSET + Math.floor(elapsedHours)) / HOURS_PER_MONTH,
+  );
+}

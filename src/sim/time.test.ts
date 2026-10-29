@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TIME } from '../data/balance';
-import { HOURS_PER_SEASON, HOURS_PER_YEAR, seasonOfMonth, toGameDate } from './time';
+import { HOURS_PER_SEASON, HOURS_PER_YEAR, monthIndex, seasonOfMonth, toGameDate } from './time';
 
 const DAY = TIME.hoursPerDay;
 /** Heures écoulées depuis le début de partie (1er mars an 1, 8 h) jusqu'à une date de l'an 1. */
@@ -50,5 +50,12 @@ describe('calendrier', () => {
       'autumn',
       'winter',
     ]);
+  });
+
+  it('numérote les mois depuis mars de l’an 1', () => {
+    expect(monthIndex(0)).toBe(0);
+    expect(monthIndex(at(29, 23))).toBe(0);
+    expect(monthIndex(at(30, 0))).toBe(1);
+    expect(monthIndex(at(360, 0))).toBe(12);
   });
 });

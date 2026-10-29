@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { createInitialState } from '../sim/state';
 import { loadGame, saveGame } from './game-save';
+import { SAVE_VERSION } from './migrations';
 import {
   createIndexedDbStorage,
   createLocalStorage,
@@ -50,13 +51,13 @@ describe.each(backends)('stockage %s', (_, create) => {
 
   it('sauvegarde puis recharge une partie', async () => {
     const storage = await create();
-    const state = createInitialState();
+    const state = createInitialState(1);
     state.time.hour = 42;
     await saveGame(storage, state, 1234);
     const result = await loadGame(storage);
     expect(result).toEqual({
       status: 'loaded',
-      save: { version: 1, syncedAtRealMs: 1234, state },
+      save: { version: SAVE_VERSION, syncedAtRealMs: 1234, state },
     });
   });
 });

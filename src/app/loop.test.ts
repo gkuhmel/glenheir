@@ -7,7 +7,7 @@ const HOUR = TIME.realMsPerGameHour;
 
 function setup(syncedAt = 0) {
   const clock = { now: syncedAt };
-  const loop = new GameLoop(createInitialState(), syncedAt, () => clock.now);
+  const loop = new GameLoop(createInitialState(1), syncedAt, () => clock.now);
   return { clock, loop };
 }
 
@@ -28,7 +28,7 @@ describe('GameLoop', () => {
     loop.update();
     // Une journée réelle hors-ligne : seules 8 h réelles sont rattrapées.
     clock.now += 24 * 3_600_000;
-    expect(loop.update()).toBe(720);
+    expect(loop.update().hours).toBe(720);
     expect(loop.state.time.hour).toBe(722);
   });
 

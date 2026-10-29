@@ -4,6 +4,7 @@ import { t } from './i18n';
 import { MapView } from './render/map-view';
 import { startAutosave } from './save/autosave';
 import { mountUi } from './ui';
+import { showAbsence } from './ui/absence';
 import { showToast } from './ui/toast';
 
 /** Empêche Safari iOS de zoomer la page entière (il ignore user-scalable=no). */
@@ -28,13 +29,20 @@ async function main(): Promise<void> {
     debug ??= mountDebugPanel(uiRoot, game, false);
     debug.toggle();
   };
-  const ui = mountUi(uiRoot, openDebug);
+  const ui = mountUi(uiRoot, game, openDebug);
   ui.update(game.loop.state);
   game.loop.onTick(() => ui.update(game.loop.state));
 
   await MapView.create(mapRoot, () => ui.insets());
   if (isDebugRequested()) openDebug();
   if (game.loadError) showToast(t('load.corrupt'), 6000);
+  if (game.startSummary) showAbsence(game.startSummary);
+  // Retour au premier plan : rattrapage immédiat et résumé si l'absence a été longue.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const summary = game.resume();
+    if (summary) showAbsence(summary);
+  });
 
   startAutosave(() => {
     game.save().catch((error) => console.error('Sauvegarde impossible', error));

@@ -28,8 +28,18 @@ function assertGameState(value: unknown): asserts value is GameState {
   if (!isRecord(value.time) || !isFiniteNumber(value.time.hour) || value.time.hour < 0) {
     throw new Error('heure de jeu invalide');
   }
-  if (!isFiniteNumber(value.cash)) throw new Error('trésorerie invalide');
+  if (!isFiniteNumber(value.rngState)) throw new Error('générateur aléatoire invalide');
+  const finance = value.finance;
+  if (!isRecord(finance) || !isFiniteNumber(finance.cash) || !Array.isArray(finance.loans)) {
+    throw new Error('finances invalides');
+  }
   if (!isFiniteNumber(value.renown)) throw new Error('renommée invalide');
+  if (!Array.isArray(value.staff)) throw new Error('personnel invalide');
+  const journal = value.journal;
+  if (!isRecord(journal) || !Array.isArray(journal.entries) || !Array.isArray(journal.monthly)) {
+    throw new Error('journal invalide');
+  }
+  if (!isFiniteNumber(value.nextId)) throw new Error('identifiants invalides');
 }
 
 /** Lit une sauvegarde texte, applique les migrations et valide le résultat. */

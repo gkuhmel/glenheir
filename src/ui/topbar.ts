@@ -26,14 +26,14 @@ export function formatDate(hour: number): { date: string; detail: string; season
  * Barre du haut : trésorerie, renommée, date et saison.
  * Cinq taps rapides sur la date ouvrent le panneau de debug (geste caché).
  */
-export function createTopBar(onSecretGesture: () => void): TopBar {
+export function createTopBar(onSecretGesture: () => void, onCashTap: () => void): TopBar {
   const element = document.createElement('header');
   element.className = 'topbar';
   element.innerHTML = `
-    <div class="stat stat-cash">
+    <button type="button" class="stat stat-cash">
       ${COIN_ICON}
       <div class="stat-text"><span class="stat-label"></span><span class="stat-value"></span></div>
-    </div>
+    </button>
     <div class="stat stat-renown">
       ${THISTLE_ICON}
       <div class="stat-text"><span class="stat-label"></span><span class="stat-value"></span></div>
@@ -53,6 +53,9 @@ export function createTopBar(onSecretGesture: () => void): TopBar {
   );
   const seasonIcon = element.querySelector<HTMLElement>('.season-icon')!;
   cashLabel!.textContent = t('topbar.cash');
+  const cashButton = element.querySelector<HTMLButtonElement>('.stat-cash')!;
+  cashButton.setAttribute('aria-label', t('topbar.openFinance'));
+  cashButton.addEventListener('click', onCashTap);
   renownLabel!.textContent = t('topbar.renown');
 
   let taps: number[] = [];
@@ -70,10 +73,11 @@ export function createTopBar(onSecretGesture: () => void): TopBar {
     element,
     update(state) {
       const { date, detail, season } = formatDate(state.time.hour);
-      const key = `${state.cash}|${state.renown}|${date}|${detail}`;
+      const key = `${state.finance.cash}|${state.renown}|${date}|${detail}`;
       if (key === last) return;
       last = key;
-      cashValue!.textContent = formatMoney(state.cash);
+      cashValue!.textContent = formatMoney(state.finance.cash);
+      cashButton.classList.toggle('negative', state.finance.cash < 0);
       renownValue!.textContent = formatNumber(state.renown);
       dateValue!.textContent = date;
       dateDetail!.textContent = detail;

@@ -77,6 +77,12 @@ export function mountDebugPanel(root: HTMLElement, game: Game, startOpen: boolea
       button(t('debug.skipSeason'), skip(HOURS_PER_SEASON)),
     ),
     section(
+      'debug.cheats',
+      button(t('debug.addCash'), () => {
+        game.execute({ type: 'debugAddCash' });
+      }),
+    ),
+    section(
       'debug.save',
       button(t('debug.saveNow'), async () => {
         await game.save();

@@ -34,3 +34,20 @@ export function formatNumber(value: number): string {
 export function formatMoney(amount: number): string {
   return t('money.gbp', { amount: formatNumber(amount) });
 }
+
+/** Durée de jeu lisible : « 3 jours et 4 heures ». */
+export function formatDuration(totalHours: number, hoursPerDay = 24): string {
+  const days = Math.floor(totalHours / hoursPerDay);
+  const hours = totalHours % hoursPerDay;
+  const dayText = t(days > 1 ? 'duration.days' : 'duration.day', { n: days });
+  const hourText = t(hours > 1 ? 'duration.hours' : 'duration.hour', { n: hours });
+  if (days === 0) return hourText;
+  if (hours === 0) return dayText;
+  return t('duration.and', { a: dayText, b: hourText });
+}
+
+/** Montant signé : « +£1 200 » ou « −£1 800 ». */
+export function formatSignedMoney(amount: number): string {
+  const sign = amount > 0 ? '+' : amount < 0 ? '−' : '';
+  return sign + formatMoney(Math.abs(amount));
+}

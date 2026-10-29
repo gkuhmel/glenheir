@@ -19,6 +19,47 @@ export const ECONOMY = {
   startingRenown: 0,
 } as const;
 
+export const FINANCE = {
+  loan: {
+    /** Encours maximal de tous les prêts cumulés. */
+    maxOutstanding: 100_000,
+    minAmount: 1_000,
+    annualRate: 0.06,
+    /** Chaque emprunt se rembourse par mensualités constantes sur 5 ans. */
+    termMonths: 60,
+  },
+  /** Entretien mensuel : part de la valeur des bâtiments restaurés (étape 3). */
+  maintenanceMonthlyRate: 0.01,
+  bankruptcy: {
+    /** Mois consécutifs de trésorerie négative avant l'avertissement, puis la faillite. */
+    warningMonths: 1,
+    defeatMonths: 3,
+  },
+  /** Mois conservés en détail dans le journal ; au-delà, regroupés par mois et catégorie. */
+  journalDetailMonths: 24,
+} as const;
+
+/** Droits d'accise sur les ventes au Royaume-Uni (boutique, cavistes). */
+export const EXCISE = {
+  perUkBottle: 9,
+} as const;
+
+/** Salaires mensuels par rôle, du niveau 1 au niveau 5. */
+export const SALARIES = {
+  worker: [1_800, 2_000, 2_200, 2_400, 2_600],
+  distiller: [2_500, 3_125, 3_750, 4_375, 5_000],
+  cellarMaster: [3_000, 3_875, 4_750, 5_625, 6_500],
+  guide: [1_600, 1_800, 2_000, 2_200, 2_400],
+} as const;
+
+/** Personnel au début de partie (jalon 1 « La ruine »). */
+export const STARTING_STAFF = [{ role: 'worker', level: 1 }] as const;
+
+export const OFFLINE = {
+  /** Durée minimale de rattrapage (heures de jeu) pour afficher « Pendant ton absence ». */
+  summaryMinHours: 24,
+} as const;
+
 export const MAP = {
   cols: 64,
   rows: 64,
@@ -36,4 +77,5 @@ export const SAVE = {
 
 export const DEBUG = {
   speeds: [1, 10, 100],
+  cashGift: 10_000,
 } as const;

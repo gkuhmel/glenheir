@@ -1,6 +1,8 @@
 import { t, type MessageKey } from '../i18n';
 import type { Insets } from '../render/camera';
+import type { Game } from '../app/game';
 import type { GameState } from '../sim/state';
+import { createFinancePanel } from './finance-panel';
 import { createBottomBar, type TabId } from './bottombar';
 import { createDrawer } from './drawer';
 import { createTopBar } from './topbar';
@@ -20,15 +22,30 @@ export interface Ui {
 }
 
 /** Monte l'interface HTML par-dessus la carte. */
-export function mountUi(root: HTMLElement, onSecretGesture: () => void): Ui {
+export function mountUi(root: HTMLElement, game: Game, onSecretGesture: () => void): Ui {
   let activeTab: TabId = 'map';
-  const topBar = createTopBar(onSecretGesture);
+  let financeOpen = false;
+  const finance = createFinancePanel(game);
+  const topBar = createTopBar(onSecretGesture, () => {
+    if (financeOpen && drawer.isOpen) {
+      drawer.close();
+      financeOpen = false;
+      return;
+    }
+    finance.render();
+    drawer.open(t('finance.title'), finance.element);
+    financeOpen = true;
+    activeTab = 'map';
+    bottomBar.setActive(activeTab);
+  });
   const drawer = createDrawer(() => {
     activeTab = 'map';
+    financeOpen = false;
     bottomBar.setActive(activeTab);
   });
   const bottomBar = createBottomBar((tab: TabId) => {
     // L'onglet Distillerie montre la carte seule ; retoucher l'onglet actif referme le tiroir.
+    financeOpen = false;
     if (tab === 'map' || (drawer.isOpen && activeTab === tab)) {
       drawer.close();
       activeTab = 'map';
@@ -42,7 +59,10 @@ export function mountUi(root: HTMLElement, onSecretGesture: () => void): Ui {
   root.append(topBar.element, drawer.element, bottomBar.element);
 
   return {
-    update: (state) => topBar.update(state),
+    update: (state) => {
+      topBar.update(state);
+      if (financeOpen && drawer.isOpen) finance.render();
+    },
     insets: () => ({
       top: topBar.element.getBoundingClientRect().bottom + KNOT_BAND_HEIGHT,
       bottom: window.innerHeight - bottomBar.element.getBoundingClientRect().top + KNOT_BAND_HEIGHT,

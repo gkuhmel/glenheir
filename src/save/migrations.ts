@@ -2,13 +2,27 @@
 export type Migration = (state: unknown) => unknown;
 
 /** Version actuelle du format de sauvegarde. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 /**
  * Migrations indexées par version de départ : `migrations[1]` transforme un
  * état v1 en v2. À compléter à chaque changement de forme de `GameState`.
  */
-export const migrations: Record<number, Migration> = {};
+export const migrations: Record<number, Migration> = {
+  // v1 → v2 (étape 2) : finances, personnel, journal et générateur aléatoire.
+  1: (state) => {
+    const old = state as { time: { hour: number }; cash: number; renown: number };
+    return {
+      rngState: 0x2545f491,
+      time: old.time,
+      finance: { cash: old.cash, loans: [], negativeMonths: 0, bankrupt: false },
+      renown: old.renown,
+      staff: [{ id: 1, role: 'worker', level: 1 }],
+      journal: { entries: [], monthly: [] },
+      nextId: 2,
+    };
+  },
+};
 
 export function migrate(
   state: unknown,

@@ -35,7 +35,7 @@ Le jeu tourne en temps compressé, y compris app fermée : **1 saison de jeu = 2
 | 3 ans (whisky légal) | 12 jours |
 
 - **Calendrier :** 12 mois de 30 jours (1 an = 360 jours). Printemps = mars à mai, été = juin à août, automne = septembre à novembre, hiver = décembre à février. La partie commence le **1er mars de l'an 1 à 8 h** ; chaque année d'exploitation commence le 1er mars (« An 2 » au 1er mars suivant). Les échéances « mensuelles » tombent le 1er de chaque mois.
-- **Hors-ligne :** au retour, la simulation rattrape le temps écoulé, plafonné à **8 h réelles** (le reste est perdu, sans pénalité). Un écran « Pendant ton absence » résume ventes, récoltes, fûts prêts et événements. Le même mécanisme s'applique quand l'app passe en arrière-plan.
+- **Hors-ligne :** au retour, la simulation rattrape le temps écoulé, plafonné à **8 h réelles** (le reste est perdu, sans pénalité). Un écran « Pendant ton absence » résume ventes, récoltes, fûts prêts et événements, dès que l'absence dépasse 1 jour de jeu (16 min réelles). Le même mécanisme s'applique quand l'app passe en arrière-plan.
 - **Pas de punition :** rien ne se dégrade parce que le joueur est absent (pas de démission, pas de récolte pourrie). Les risques viennent des choix et du marché.
 - **Pause :** le temps ne s'arrête pas, mais un mode « construction » fige la simulation tant que le joueur édite le plan ; à la sortie, la simulation rattrape le temps réel écoulé pendant l'édition (même plafond de 8 h).
 
@@ -164,9 +164,9 @@ Le prix final = prix de base × facteur qualité × facteur renommée × facteur
 
 ### Économie de départ
 
-- Trésorerie : **£50 000**. Prêt bancaire possible jusqu'à £100 000 à 6 %/an, remboursement mensuel.
-- Coûts fixes : salaires, entretien des bâtiments (1 %/mois de leur valeur), énergie.
-- Faillite : trésorerie négative 3 mois de suite → fin de partie (avec un avertissement à 1 mois).
+- Trésorerie : **£50 000**. Prêt bancaire possible jusqu'à £100 000 d'encours à 6 %/an : chaque emprunt (minimum £1 000, plusieurs possibles) se rembourse par mensualités constantes sur 5 ans, le 1er de chaque mois ; remboursement anticipé possible sans pénalité (la mensualité est recalculée).
+- Coûts fixes : salaires (versés le 1er de chaque mois pour le mois écoulé), entretien des bâtiments (1 %/mois de leur valeur), énergie.
+- Faillite : trésorerie négative au 1er du mois 3 mois de suite → fin de partie (avec un avertissement dès le 1er mois négatif).
 
 ### Coûts de restauration
 
@@ -290,7 +290,7 @@ Accessible en touchant la trésorerie dans la barre du haut, et depuis l'onglet 
 - **Stock** : fûts par âge et valeur estimée à maturité, bouteilles prêtes à vendre.
 - Chaque ligne du tableau de bord ouvre le détail des transactions correspondantes (journal filtrable).
 
-La simulation enregistre donc **chaque transaction** (date, montant, catégorie, produit, canal) dans un journal ; le tableau de bord n'est qu'une vue agrégée de ce journal.
+La simulation enregistre donc **chaque transaction** (date, montant, catégorie, produit, canal) dans un journal ; le tableau de bord n'est qu'une vue agrégée de ce journal. Le journal garde le détail des 24 derniers mois ; au-delà, les transactions sont regroupées par mois et par catégorie.
 
 ## Architecture technique
 

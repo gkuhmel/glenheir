@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import en from './en.json';
 import fr from './fr.json';
-import { formatMoney, setLocale, t } from './index';
+import { formatDuration, formatMoney, formatSignedMoney, setLocale, t } from './index';
 
 describe('i18n', () => {
   afterEach(() => setLocale('fr'));
@@ -24,5 +24,18 @@ describe('i18n', () => {
   it('change de langue', () => {
     setLocale('en');
     expect(t('season.winter')).toBe('Winter');
+  });
+});
+
+describe('durées et montants', () => {
+  it('écrit une durée de jeu en toutes lettres', () => {
+    expect(formatDuration(1)).toBe('1 heure');
+    expect(formatDuration(48)).toBe('2 jours');
+    expect(formatDuration(26)).toBe('1 jour et 2 heures');
+  });
+
+  it('signe les montants', () => {
+    expect(formatSignedMoney(-1800).replace(/\s/g, ' ')).toBe('−£1 800');
+    expect(formatSignedMoney(500)).toBe('+£500');
   });
 });

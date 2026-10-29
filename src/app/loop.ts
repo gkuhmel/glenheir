@@ -8,6 +8,12 @@ export const CATCH_UP_CAP_HOURS = TIME.offlineCapRealMs / TIME.realMsPerGameHour
 
 export type TickListener = (events: SimEvent[], hours: number) => void;
 
+export interface UpdateResult {
+  /** Heures de jeu simulées. */
+  hours: number;
+  events: SimEvent[];
+}
+
 /**
  * Fait avancer la simulation au rythme du temps réel, par pas fixes d'une
  * heure de jeu. Le même calcul sert en jeu, au retour d'arrière-plan et au
@@ -42,8 +48,8 @@ export class GameLoop {
     return () => this.listeners.delete(listener);
   }
 
-  /** Simule le temps écoulé depuis la dernière mise à jour ; renvoie le nombre d'heures jouées. */
-  update(): number {
+  /** Simule le temps écoulé depuis la dernière mise à jour. */
+  update(): UpdateResult {
     const result = advanceClock(
       this.syncedAtRealMs,
       this.now(),
@@ -51,14 +57,20 @@ export class GameLoop {
       CATCH_UP_CAP_HOURS,
     );
     this.syncedAtRealMs = result.syncedAtRealMs;
-    if (result.hours > 0) this.advance(result.hours);
-    return result.hours;
+    const events = result.hours > 0 ? this.advance(result.hours) : [];
+    return { hours: result.hours, events };
   }
 
   /** Avance immédiatement de `hours` heures de jeu (debug). */
-  advance(hours: number): void {
+  advance(hours: number): SimEvent[] {
     const events = runTicks(this.currentState, hours);
     this.notify(events, hours);
+    return events;
+  }
+
+  /** Prévient les abonnés d'un changement d'état hors du temps (commande du joueur). */
+  changed(events: SimEvent[]): void {
+    this.notify(events, 0);
   }
 
   /** Change la vitesse (debug) après avoir réglé le temps dû à l'ancienne vitesse. */

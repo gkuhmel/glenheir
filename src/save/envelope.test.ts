@@ -6,28 +6,28 @@ import { migrate, SAVE_VERSION } from './migrations';
 
 describe('sauvegarde', () => {
   it('fait l’aller-retour sans perte', () => {
-    const state = createInitialState();
+    const state = createInitialState(1);
     runTicks(state, 123);
     const envelope = createEnvelope(state, 1_700_000_000_000);
     expect(parseSave(serializeSave(envelope))).toEqual(envelope);
   });
 
   it('porte un numéro de version', () => {
-    const text = serializeSave(createEnvelope(createInitialState(), 0));
+    const text = serializeSave(createEnvelope(createInitialState(1), 0));
     expect(JSON.parse(text).version).toBe(SAVE_VERSION);
   });
 
   it.each([
     ['du texte qui n’est pas du JSON', 'pas du json'],
     ['un tableau', '[]'],
-    ['une version absente', JSON.stringify({ syncedAtRealMs: 0, state: createInitialState() })],
-    ['un horodatage absent', JSON.stringify({ version: 1, state: createInitialState() })],
+    ['une version absente', JSON.stringify({ syncedAtRealMs: 0, state: createInitialState(1) })],
+    ['un horodatage absent', JSON.stringify({ version: 1, state: createInitialState(1) })],
     [
       'une heure négative',
       JSON.stringify({
         version: 1,
         syncedAtRealMs: 0,
-        state: { ...createInitialState(), time: { hour: -1 } },
+        state: { ...createInitialState(1), time: { hour: -1 } },
       }),
     ],
     [
@@ -36,6 +36,22 @@ describe('sauvegarde', () => {
     ],
   ])('refuse %s', (_, text) => {
     expect(() => parseSave(text)).toThrow();
+  });
+});
+
+describe('migration v1 → v2', () => {
+  it('reprend une partie de l’étape 1 sans la perdre', () => {
+    const v1 = JSON.stringify({
+      version: 1,
+      syncedAtRealMs: 42,
+      state: { time: { hour: 500 }, cash: 50_000, renown: 0 },
+    });
+    const { state, version } = parseSave(v1);
+    expect(version).toBe(SAVE_VERSION);
+    expect(state.time.hour).toBe(500);
+    expect(state.finance).toEqual({ cash: 50_000, loans: [], negativeMonths: 0, bankrupt: false });
+    expect(state.staff).toHaveLength(1);
+    expect(state.journal).toEqual({ entries: [], monthly: [] });
   });
 });
 
