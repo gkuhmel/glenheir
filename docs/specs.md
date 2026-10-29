@@ -34,9 +34,10 @@ Le jeu tourne en temps compressé, y compris app fermée : **1 saison de jeu = 2
 | 1 an | 4 jours |
 | 3 ans (whisky légal) | 12 jours |
 
-- **Hors-ligne :** au retour, la simulation rattrape le temps écoulé, plafonné à **8 h réelles** (le reste est perdu, sans pénalité). Un écran « Pendant ton absence » résume ventes, récoltes, fûts prêts et événements.
+- **Calendrier :** 12 mois de 30 jours (1 an = 360 jours). Printemps = mars à mai, été = juin à août, automne = septembre à novembre, hiver = décembre à février. La partie commence le **1er mars de l'an 1 à 8 h** ; chaque année d'exploitation commence le 1er mars (« An 2 » au 1er mars suivant). Les échéances « mensuelles » tombent le 1er de chaque mois.
+- **Hors-ligne :** au retour, la simulation rattrape le temps écoulé, plafonné à **8 h réelles** (le reste est perdu, sans pénalité). Un écran « Pendant ton absence » résume ventes, récoltes, fûts prêts et événements. Le même mécanisme s'applique quand l'app passe en arrière-plan.
 - **Pas de punition :** rien ne se dégrade parce que le joueur est absent (pas de démission, pas de récolte pourrie). Les risques viennent des choix et du marché.
-- **Pause :** le temps ne s'arrête pas, mais un mode « construction » fige la simulation tant que le joueur édite le plan.
+- **Pause :** le temps ne s'arrête pas, mais un mode « construction » fige la simulation tant que le joueur édite le plan ; à la sortie, la simulation rattrape le temps réel écoulé pendant l'édition (même plafond de 8 h).
 
 ### Session courte (≈ 5 min)
 
@@ -383,5 +384,5 @@ Conseil de travail : à chaque étape, demander d'abord à Claude Code un plan, 
 - [x] Choisir le nom du jeu : Glenheir (reste à vérifier App Store, domaine, GitHub).
 - [ ] Le rythme « 1 saison = 24 h réelles » est-il le bon, ou faut-il plus rapide (premier whisky en une semaine) ?
 - [ ] La faillite est-elle une vraie fin de partie, ou un rachat avec malus (plus doux pour du mobile) ?
-- [ ] Un seul emplacement de sauvegarde, ou plusieurs parties en parallèle ?
+- [x] Un seul emplacement de sauvegarde, ou plusieurs parties en parallèle ? → Un seul emplacement pour le MVP, stockage prévu pour en accueillir plusieurs.
 - [ ] Faut-il un personnage narrateur (le notaire, un vieux distillateur) pour porter le tutoriel et l'histoire ?
