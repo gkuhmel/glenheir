@@ -51,3 +51,12 @@ export function formatSignedMoney(amount: number): string {
   const sign = amount > 0 ? '+' : amount < 0 ? '−' : '';
   return sign + formatMoney(Math.abs(amount));
 }
+
+/** Durée courte pour les minuteurs : « 3 j 4 h » ou « 12 h ». */
+export function formatShortDuration(totalHours: number, hoursPerDay = 24): string {
+  const hours = Math.ceil(totalHours);
+  const d = Math.floor(hours / hoursPerDay);
+  const h = hours % hoursPerDay;
+  if (d === 0) return t('duration.shortHours', { h });
+  return h === 0 ? t('duration.shortDays', { d }) : t('duration.short', { d, h });
+}

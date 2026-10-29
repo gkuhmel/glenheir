@@ -37,6 +37,8 @@ export interface UiHandlers {
   onPanelClosed(): void;
   /** Mode « Agrandir » de la vue intérieure. */
   onBuildMode(on: boolean): void;
+  /** Contenu des onglets Production, Chai, Marché, Équipe (null : bientôt disponible). */
+  tabContent(tab: TabId): PanelContent | null;
 }
 
 type DrawerMode = 'none' | 'finance' | 'tab' | 'panel';
@@ -90,6 +92,10 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
       return;
     }
     if (mode === 'panel') handlers.onPanelClosed();
+    if (handlers.tabContent(tab)) {
+      openPanel(() => handlers.tabContent(tab), tab);
+      return;
+    }
     drawer.open(t(`tab.${tab}` as MessageKey), t('drawer.soon'));
     mode = 'tab';
     activeTab = tab;
@@ -98,6 +104,15 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
   const header = createSceneHeader(handlers.onBack, handlers.onBuildMode);
 
   root.append(topBar.element, header.element, drawer.element, bottomBar.element);
+
+  const openPanel = (provider: () => PanelContent | null, tab: TabId = 'map') => {
+    panelProvider = provider;
+    panelKey = '';
+    mode = tab === 'map' ? 'panel' : 'tab';
+    activeTab = tab;
+    bottomBar.setActive(activeTab);
+    renderPanel();
+  };
 
   const renderPanel = () => {
     const content = panelProvider?.();
@@ -109,9 +124,17 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
     update: (state) => {
       topBar.update(state);
       if (mode === 'finance' && drawer.isOpen) finance.render();
-      if (mode === 'panel' && drawer.isOpen) {
-        // Le contenu dépend de la trésorerie et des bâtiments.
-        const key = JSON.stringify([state.finance.cash, state.building, state.warehouses]);
+      if ((mode === 'panel' || mode === 'tab') && panelProvider && drawer.isOpen) {
+        // Le contenu dépend de la trésorerie, des bâtiments, de la production et de l'heure.
+        const key = JSON.stringify([
+          state.time.hour,
+          state.finance.cash,
+          state.building,
+          state.warehouses,
+          state.machines,
+          state.fields,
+          state.stocks,
+        ]);
         if (key !== panelKey) {
           panelKey = key;
           renderPanel();
@@ -124,13 +147,7 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
       left: 0,
       right: 0,
     }),
-    showPanel: (provider) => {
-      panelProvider = provider;
-      panelKey = '';
-      mode = 'panel';
-      resetTab();
-      renderPanel();
-    },
+    showPanel: (provider) => openPanel(provider),
     closePanel: () => {
       if (mode === 'panel') {
         drawer.close();

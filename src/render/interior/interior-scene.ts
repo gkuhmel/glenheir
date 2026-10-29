@@ -21,6 +21,7 @@ import { colX, levelTop, MARGIN, ROOM, SKY, WORLD } from './layout';
 import { INTERIOR as P } from './palette';
 import { drawRoomInterior } from './rooms';
 import { drawShell, drawSlots } from './shell';
+import { MachineActivity } from './activity';
 
 export type InteriorSelection =
   { kind: 'room'; roomId: number } | { kind: 'slot'; col: number; level: number };
@@ -54,6 +55,7 @@ export class InteriorScene implements Scene {
   private readonly slots = new Container();
   private buildMode = false;
   private readonly people = new Container();
+  private readonly activity = new MachineActivity();
   private readonly effects = new Container();
   private readonly selectionBox = new Graphics();
   private readonly roomGraphics = new Map<number, Graphics>();
@@ -80,6 +82,7 @@ export class InteriorScene implements Scene {
       this.backdrop,
       this.rooms,
       this.shell,
+      this.activity.container,
       this.people,
       this.slots,
       this.effects,
@@ -103,6 +106,8 @@ export class InteriorScene implements Scene {
       this.signature = signature;
     }
     this.syncWalkers(state);
+    this.activity.setState(state);
+    for (const walker of this.walkers) walker.setActiveRooms(this.activity.activeRooms);
   }
 
   /** Mode « Agrandir » : montre les emplacements achetables et permet de les toucher. */
@@ -175,6 +180,7 @@ export class InteriorScene implements Scene {
       if (t >= 1) this.focus = null;
     }
     for (const walker of this.walkers) walker.update(dtMs);
+    this.activity.update(dtMs);
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i]!;
       p.life += dtMs;

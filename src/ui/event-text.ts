@@ -14,6 +14,8 @@ export function describeEvent(event: SimEvent): string | null {
       return t('event.bankruptcyWarning', { months: event.monthsLeft });
     case 'bankrupt':
       return t('event.bankrupt');
+    case 'fieldRipe':
+      return t('event.fieldRipe');
     default:
       return null;
   }

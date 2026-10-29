@@ -53,6 +53,19 @@ export function showAbsence(summary: AbsenceSummary): void {
     table.append(row(t('absence.balance'), summary.income + summary.expenses, 'total'));
   }
 
+  const { produced } = summary;
+  const items = [
+    produced.barley > 0 ? t('absence.producedBarley', { amount: produced.barley }) : '',
+    produced.malt > 0 ? t('absence.producedMalt', { amount: produced.malt }) : '',
+    produced.newMake > 0 ? t('absence.producedNewMake', { amount: produced.newMake }) : '',
+  ].filter(Boolean);
+  if (items.length > 0) {
+    const line = document.createElement('p');
+    line.className = 'absence-produced';
+    line.textContent = t('absence.produced', { items: items.join(', ') });
+    table.after(line);
+  }
+
   const list = overlay.querySelector('ul')!;
   for (const event of summary.notable) {
     const text = describeEvent(event);

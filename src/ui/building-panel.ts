@@ -5,6 +5,7 @@ import { formatMoney, t, type MessageKey } from '../i18n';
 import type { InteriorSelection } from '../render/interior/interior-scene';
 import type { Command } from '../sim/commands';
 import { buildCost, restoreCost, roomGroups, slotCost } from '../sim/systems/building';
+import { ProductionPanels } from './production-panels';
 import { showToast } from './toast';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') => {
@@ -23,7 +24,11 @@ export interface PanelContent {
 
 /** Contenu du tiroir pour ce qu'on a touché dans la scène : salle, emplacement ou chai. */
 export class BuildingPanel {
-  constructor(private readonly game: Game) {}
+  private readonly production: ProductionPanels;
+
+  constructor(private readonly game: Game) {
+    this.production = new ProductionPanels(game);
+  }
 
   /** Exécute une commande et annonce le résultat ; renvoie vrai si elle a réussi. */
   private run(command: Command, success: string): boolean {
@@ -80,7 +85,9 @@ export class BuildingPanel {
       );
       body.append(this.cashLine());
     } else if (room.type) {
-      body.append(el('p', 'panel-status', t('building.working')));
+      const machine = this.game.state.machines.find((m) => m.roomId === roomId);
+      if (machine) body.append(...this.production.machineSections(machine));
+      else body.append(el('p', 'panel-status', t('building.working')));
       const group = roomGroups(building).find((g) => g.roomIds.includes(roomId));
       if (group && group.cols.length > 1) {
         body.append(

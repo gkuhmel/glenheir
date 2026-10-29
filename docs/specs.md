@@ -68,6 +68,8 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 
 ### Terroirs (choix au démarrage)
 
+À la création d'une partie, un écran présente le pitch puis les deux terroirs ; le choix est définitif pour la partie.
+
 | Terroir | Atouts | Contraintes |
 | --- | --- | --- |
 | Speyside | Eau douce (+10 fruité), terres fertiles (rendement 100 %), visiteurs +20 % | Foncier cher (parcelle £8 000), concurrence forte |
@@ -87,7 +89,7 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 ### Terres et orge
 
 - Parcelles de 1 ha ; 2 parcelles au départ, jusqu'à 8 achetables.
-- Semis au printemps, récolte en fin d'été. Météo aléatoire : rendement ±20 %.
+- Semis au printemps (mars à mai) ; l'orge est mûre le 15 août. Le joueur moissonne en touchant la parcelle ; ce qui n'est pas moissonné l'est d'office le 1er septembre, sans perte. Météo aléatoire : rendement ±20 %.
 - 1 ha donne environ 6 t d'orge. On peut aussi acheter de l'orge au marché (plus cher, sans bonus de variété).
 
 | Variété | Rendement | Effet sur le profil | Coût semence |
@@ -108,6 +110,8 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 - **Alambics** (toujours par paire, wash + spirit) : petit (£25 000, 2 500 L/jour), moyen (£60 000, 5 000 L/jour). Col court : +corps, +épicé ; col long : +floral, +fruité.
 - **Coupes** : un curseur règle la largeur du « cœur ». Étroit : +10 qualité, −25 % volume. Large : +25 % volume, −10 qualité, +lourd/épicé. La compétence du distillateur réduit la pénalité.
 - **Énergie** : £120 par jour de distillation.
+- **Lots et files** : chaque machine traite un lot à la fois — malterie 4 t d'orge, brasserie 1 t de malt (5 000 L de moût), 2 cuves de 5 000 L par salle de fermentation, alambics au débit de leur paire (une cuve de bière par passe). On programme N lots ou « en continu » ; les étapes s'enchaînent seules (le moût part dans la première cuve libre, les alambics prennent la première cuve prête). Une salle en ruine ne tourne pas ; une salle fusionnée travaille plus vite.
+- **Alambics de la salle de départ** : la vieille paire se restaure (£8 000) une fois la salle restaurée ; une salle des alambics construite à neuf doit en acheter une (£25 000).
 
 ### Chai et vieillissement
 
@@ -201,7 +205,8 @@ Une salle construite à neuf dans un emplacement vide (par exemple une deuxième
 
 | Poste | Coût | Quand |
 | --- | --- | --- |
-| Orge achetée au marché | £250/t | À l'achat, prix variable selon la saison |
+| Orge achetée au marché | £250/t × saison (printemps ×1,1, été ×1,15, automne ×0,88, hiver ×1) | À l'achat |
+| Tourbe | £40/t d'orge (léger), £90/t (fort) ; gratuite à Islay | Au lancement du maltage |
 | Mise en bouteille | £3/bouteille (verre, étiquette, bouchon) | À la mise en bouteille |
 | Botaniques gin | £1,50/bouteille | À la production |
 | Extension du chai | £5 000 par lot de 20 places | À la construction |

@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import en from './en.json';
 import fr from './fr.json';
-import { formatDuration, formatMoney, formatSignedMoney, setLocale, t } from './index';
+import {
+  formatDuration,
+  formatMoney,
+  formatShortDuration,
+  formatSignedMoney,
+  setLocale,
+  t,
+} from './index';
 
 describe('i18n', () => {
   afterEach(() => setLocale('fr'));
@@ -37,5 +44,11 @@ describe('durées et montants', () => {
   it('signe les montants', () => {
     expect(formatSignedMoney(-1800).replace(/\s/g, ' ')).toBe('−£1 800');
     expect(formatSignedMoney(500)).toBe('+£500');
+  });
+
+  it('écrit les minuteurs en abrégé', () => {
+    expect(formatShortDuration(5)).toBe('5 h');
+    expect(formatShortDuration(24)).toBe('1 j');
+    expect(formatShortDuration(52.5)).toBe('2 j 5 h');
   });
 });

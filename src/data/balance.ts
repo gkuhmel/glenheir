@@ -220,6 +220,11 @@ export const MAP = {
   courtyard: { x: 25, y: 23, width: 14, height: 11 },
   /** Emprise du premier chai, à l'est de la cour, en tuiles. */
   warehouse: { x: 41, y: 22.5, width: 4, height: 10 },
+  /** Parcelles d'orge (1 ha chacune), au nord de la cour, en tuiles. */
+  fields: [
+    { x: 26, y: 13, width: 6, height: 7 },
+    { x: 33, y: 13, width: 6, height: 7 },
+  ],
 } as const;
 
 export const SAVE = {

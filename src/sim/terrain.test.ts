@@ -79,4 +79,13 @@ describe('terrain', () => {
     );
     expect(inside).toEqual([]);
   });
+
+  it('laisse les parcelles d’orge libres de tout décor', () => {
+    for (const f of MAP.fields) {
+      const inside = terrain.decor.filter(
+        (d) => d.x > f.x && d.x < f.x + f.width && d.y > f.y && d.y < f.y + f.height,
+      );
+      expect(inside).toEqual([]);
+    }
+  });
 });

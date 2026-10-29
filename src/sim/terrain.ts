@@ -249,7 +249,14 @@ export function generateTerrain(seed: number = MAP.terrainSeed): Terrain {
         center.x < warehouse.x + warehouse.width + 1.5 &&
         center.y > warehouse.y - 1.5 &&
         center.y < warehouse.y + warehouse.height + 1.5;
-      if (nearWarehouse) continue;
+      const inField = MAP.fields.some(
+        (f) =>
+          center.x > f.x - 1 &&
+          center.x < f.x + f.width + 1 &&
+          center.y > f.y - 1 &&
+          center.y < f.y + f.height + 1,
+      );
+      if (nearWarehouse || inField) continue;
       const pathDistance = Math.min(...paths.map((p) => distanceToPolyline(center, p)));
       const courtGap = Math.max(
         court.x - center.x,

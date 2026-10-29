@@ -33,6 +33,7 @@ export class Walker {
   private path: Point[] = [];
   private timer = 0;
   private building: Building;
+  private activeRooms = new Set<number>();
 
   constructor(
     outfit: Outfit,
@@ -48,6 +49,11 @@ export class Walker {
 
   setBuilding(building: Building): void {
     this.building = building;
+  }
+
+  /** Salles où une machine tourne : l'ouvrier y passe plus de temps. */
+  setActiveRooms(rooms: Set<number>): void {
+    this.activeRooms = rooms;
   }
 
   update(dtMs: number): void {
@@ -86,7 +92,8 @@ export class Walker {
   /** Salles en état de marche en priorité ; sinon, il déblaie les ruines. */
   private chooseDestination(): void {
     const candidates = this.building.rooms.filter((r) => reachable(this.building, r));
-    const weighted = candidates.flatMap((r) => (r.type && !r.ruined ? [r, r, r] : [r]));
+    const weight = (r: Room) => (this.activeRooms.has(r.id) ? 6 : r.type && !r.ruined ? 3 : 1);
+    const weighted = candidates.flatMap((r) => Array.from({ length: weight(r) }, () => r));
     const room = this.rng.pick(weighted);
     const x = colX(room.col) + this.rng.range(70, ROOM.width - 70);
     this.path = this.route(room.level, x);
