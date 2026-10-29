@@ -24,6 +24,10 @@ export const MAP = {
   rows: 64,
   /** Taille d'une tuile en pixels logiques. */
   tileSize: 32,
+  /** Graine du terrain de départ (ruisseau, chemins, décor). */
+  terrainSeed: 1789,
+  /** Cour de la distillerie en ruine, en tuiles. */
+  courtyard: { x: 27, y: 25, width: 10, height: 9 },
 } as const;
 
 export const SAVE = {
