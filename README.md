@@ -23,19 +23,20 @@ Pour tester sur iPhone en local : lancer `npm run dev` et ouvrir l'adresse rése
 
 Ajouter `?debug` à l'URL, ou toucher 5 fois rapidement la date dans la barre du haut. Il permet d'accélérer le temps (×10, ×100), d'avancer d'une heure, d'un jour ou d'une saison, d'exporter/importer la sauvegarde en texte et de recommencer une partie.
 
-## Déploiement (Cloudflare Pages)
+## Déploiement (Cloudflare Workers)
 
-Le déploiement passe par l'intégration Git de Cloudflare Pages ; aucun secret n'est stocké dans le dépôt.
+Le site est déployé comme Worker de fichiers statiques (configuration dans `wrangler.jsonc`, aucun code serveur). Le dépôt est connecté à Cloudflare via **Workers & Pages → Create → Import a repository** ; aucun secret n'est stocké dans le dépôt.
 
-1. Tableau de bord Cloudflare → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**, puis choisir le dépôt `glenheir`.
-2. Réglages de build :
-   - Framework preset : **None** (ou Vite)
-   - Build command : `npm run build`
-   - Build output directory : `dist`
-   - Branche de production : `main`
-3. La version de Node est fixée par `.node-version` (22).
+Réglages du projet (**Settings → Build**) :
 
-Chaque branche poussée obtient une URL d'aperçu HTTPS (`<branche>.<projet>.pages.dev`), pratique pour tester sur iPhone avant de fusionner. Les en-têtes de cache sont dans `public/_headers`.
+- Build command : `npm run build`
+- Deploy command : `npx wrangler deploy`
+- Root directory : vide (ou `/`) — c'est le dossier du `package.json`, pas le dossier de sortie
+- Branche de production : `main`
+
+Le nom du Worker dans Cloudflare doit correspondre au champ `name` de `wrangler.jsonc` (`glenheir`). Le dossier servi est `dist/` ; les en-têtes de cache sont dans `public/_headers`. La version de Node est fixée par `.node-version` (22).
+
+Pour obtenir une URL de test par branche, activer les builds des branches hors production (**Settings → Build → Branch control**) avec la commande `npx wrangler versions upload` : chaque branche poussée donne une URL d'aperçu.
 
 ## Organisation du code
 
