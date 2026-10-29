@@ -12,3 +12,5 @@ Specs complètes : docs/specs.md (à lire avant toute tâche).
 - On avance étape par étape selon le plan de docs/specs.md ;
   ne pas commencer l'étape suivante sans validation.
 - Mettre à jour docs/specs.md si une règle de jeu change.
+- Git : travailler directement sur `main` et pousser sur `main` sans
+  demander (pas de branche, pas de PR).
