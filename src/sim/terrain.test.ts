@@ -32,7 +32,8 @@ describe('terrain', () => {
   });
 
   it('relie la cour aux bords de la carte par des chemins', () => {
-    const [south, west] = terrain.paths;
+    const [south, west, east] = terrain.paths;
+    expect(east!.at(-1)!.x).toBeCloseTo(terrain.warehouse.x + 0.5);
     expect(south!.at(-1)!.y).toBeGreaterThan(terrain.rows);
     expect(west!.at(-1)!.x).toBeLessThan(0);
   });
@@ -56,5 +57,26 @@ describe('terrain', () => {
         w.to.x <= gates.south + 1,
     );
     expect(atSouthGate).toEqual([]);
+    const eastX = courtyard.x + courtyard.width;
+    const atEastGate = terrain.walls.filter(
+      (w) =>
+        w.from.x === eastX &&
+        w.to.x === eastX &&
+        w.from.y >= gates.east - 1 &&
+        w.to.y <= gates.east + 1,
+    );
+    expect(atEastGate).toEqual([]);
+  });
+
+  it('laisse la place du chai libre de tout décor', () => {
+    const { warehouse } = terrain;
+    const inside = terrain.decor.filter(
+      (d) =>
+        d.x > warehouse.x &&
+        d.x < warehouse.x + warehouse.width &&
+        d.y > warehouse.y &&
+        d.y < warehouse.y + warehouse.height,
+    );
+    expect(inside).toEqual([]);
   });
 });

@@ -109,9 +109,9 @@ export const MAP = {
   /** Graine du terrain de départ (ruisseau, chemins, décor). */
   terrainSeed: 1789,
   /** Cour de la distillerie en ruine, en tuiles. */
-  courtyard: { x: 27, y: 25, width: 10, height: 9 },
+  courtyard: { x: 25, y: 23, width: 14, height: 11 },
   /** Emprise du premier chai, à l'est de la cour, en tuiles. */
-  warehouse: { x: 39.5, y: 24.5, width: 3.5, height: 9 },
+  warehouse: { x: 41, y: 22.5, width: 4, height: 10 },
 } as const;
 
 export const SAVE = {

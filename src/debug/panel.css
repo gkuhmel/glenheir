@@ -1,7 +1,7 @@
 .debug-fab {
   position: absolute;
-  right: calc(var(--safe-right) + 10px);
-  top: calc(var(--safe-top) + 84px);
+  left: calc(var(--safe-left) + 10px);
+  bottom: calc(var(--safe-bottom) + 96px);
   min-width: var(--touch);
   height: var(--touch);
   padding: 0 8px;

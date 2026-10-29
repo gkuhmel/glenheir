@@ -1,9 +1,9 @@
 import { Sprite, Texture } from 'pixi.js';
-import { MAP } from '../data/balance';
-import { createValueNoise, fbm } from '../sim/noise';
-import { createRng } from '../sim/rng';
-import type { Point, Terrain } from '../sim/terrain';
-import { GROUND_TEXELS_PER_TILE, PALETTE } from './config';
+import { MAP } from '../../data/balance';
+import { createValueNoise, fbm } from '../../sim/noise';
+import { createRng } from '../../sim/rng';
+import type { Point, Terrain } from '../../sim/terrain';
+import { GROUND_TEXELS_PER_TILE, PALETTE } from '../config';
 
 type Rgb = readonly [number, number, number] | readonly number[];
 

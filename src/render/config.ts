@@ -2,7 +2,7 @@
 export const ZOOM = {
   min: 0.35,
   max: 3,
-  initial: 0.6,
+  initial: 0.95,
   /** Sensibilité de la molette / du pincement au trackpad. */
   wheelSensitivity: 0.0015,
 } as const;
@@ -37,7 +37,8 @@ export const PALETTE = {
   stone: [0x8d877a, 0x958f81, 0x857f72, 0x9c9587],
   stoneDark: 0x3c3830,
   stoneLight: 0xc4bdac,
-  mortar: 0x5f584c,
+  mortar: 0x6b6457,
+  cobble: [0x847d70, 0x7c7569, 0x8a8376, 0x807a6e],
   pine: [0x24402a, 0x2f5233, 0x416a3d],
   birch: [0x557f39, 0x6e9846, 0x8db35e],
   gorse: 0x3c5a2e,

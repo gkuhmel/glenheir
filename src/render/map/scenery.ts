@@ -1,8 +1,8 @@
 import { Container, Graphics } from 'pixi.js';
-import { MAP } from '../data/balance';
-import { createRng, type Rng } from '../sim/rng';
-import type { Decor, Point, Terrain } from '../sim/terrain';
-import { PALETTE } from './config';
+import { MAP } from '../../data/balance';
+import { createRng, type Rng } from '../../sim/rng';
+import type { Decor, Point, Terrain } from '../../sim/terrain';
+import { PALETTE } from '../config';
 import { smoothPath } from './ground';
 
 const T = MAP.tileSize;
@@ -127,11 +127,11 @@ function drawCourtyard(g: Graphics, terrain: Terrain, rng: Rng): void {
       const w = cell - rng.range(2, 3.5);
       const h = cell - rng.range(2, 3.5);
       if (cx + w > (x + width) * T) continue;
-      const color = rng.pick(PALETTE.stone);
-      g.roundRect(cx + 1, cy + 1, w, h, 3).fill(color);
-      g.roundRect(cx + 2, cy + 1.5, w * 0.55, h * 0.4, 2).fill({
+      // Pavés usés, peu contrastés avec les joints pour ne pas écraser les bâtiments.
+      g.roundRect(cx + 1, cy + 1, w, h, 5).fill(rng.pick(PALETTE.cobble));
+      g.roundRect(cx + 2.5, cy + 2, w * 0.5, h * 0.35, 3).fill({
         color: PALETTE.stoneLight,
-        alpha: 0.18,
+        alpha: 0.08,
       });
     }
   }

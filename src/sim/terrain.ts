@@ -58,7 +58,9 @@ export interface Terrain {
   paths: Point[][];
   bridge: { x: number; y: number; angle: number };
   courtyard: Rect;
-  gates: { south: number; west: number };
+  gates: { south: number; west: number; east: number };
+  /** Emprise réservée au premier chai (sans décor), en tuiles. */
+  warehouse: Rect;
   walls: WallSegment[];
   decor: Decor[];
 }
@@ -124,7 +126,7 @@ function westPath(court: Rect, gate: number, rng: Rng): Point[] {
   return points;
 }
 
-function perimeterWalls(court: Rect, gates: { south: number; west: number }, rng: Rng) {
+function perimeterWalls(court: Rect, gates: Terrain['gates'], rng: Rng) {
   const walls: WallSegment[] = [];
   const rubble: Point[] = [];
   const { x, y, width, height } = court;
@@ -141,8 +143,9 @@ function perimeterWalls(court: Rect, gates: { south: number; west: number }, rng
   }
   for (let j = 0; j < height; j++) {
     const westGate = y + j === gates.west - 1 || y + j === gates.west;
+    const eastGate = y + j === gates.east - 1 || y + j === gates.east;
     add({ x, y: y + j }, { x, y: y + j + 1 }, westGate);
-    add({ x: x + width, y: y + j }, { x: x + width, y: y + j + 1 }, false);
+    add({ x: x + width, y: y + j }, { x: x + width, y: y + j + 1 }, eastGate);
   }
   return { walls, rubble };
 }
@@ -152,16 +155,27 @@ export function generateTerrain(seed: number = MAP.terrainSeed): Terrain {
   const cols = MAP.cols;
   const rows = MAP.rows;
   const court: Rect = { ...MAP.courtyard };
+  const warehouse: Rect = { ...MAP.warehouse };
   const gates = {
     south: court.x + Math.floor(court.width / 2),
     west: court.y + Math.floor(court.height / 2),
+    east: Math.round(warehouse.y + warehouse.height / 2),
   };
   const relief = createValueNoise(rng);
   const forest = createValueNoise(rng);
   const wobble = createValueNoise(rng);
 
   const river = riverLine(rows, wobble, rng);
-  const paths = [southPath(court, gates.south, rows, rng), westPath(court, gates.west, rng)];
+  // Allée courte de la porte est jusqu'au chai.
+  const eastPath: Point[] = [
+    { x: court.x + court.width - 0.5, y: gates.east },
+    { x: warehouse.x + 0.5, y: gates.east },
+  ];
+  const paths = [
+    southPath(court, gates.south, rows, rng),
+    westPath(court, gates.west, rng),
+    eastPath,
+  ];
   const west = paths[1] as Point[];
 
   // Le pont : point du chemin ouest le plus proche du ruisseau.
@@ -230,6 +244,12 @@ export function generateTerrain(seed: number = MAP.terrainSeed): Terrain {
       if (kind !== 'grass' && kind !== 'heather') continue;
 
       const center = { x: c + 0.5, y: r + 0.5 };
+      const nearWarehouse =
+        center.x > warehouse.x - 1.5 &&
+        center.x < warehouse.x + warehouse.width + 1.5 &&
+        center.y > warehouse.y - 1.5 &&
+        center.y < warehouse.y + warehouse.height + 1.5;
+      if (nearWarehouse) continue;
       const pathDistance = Math.min(...paths.map((p) => distanceToPolyline(center, p)));
       const courtGap = Math.max(
         court.x - center.x,
@@ -285,6 +305,7 @@ export function generateTerrain(seed: number = MAP.terrainSeed): Terrain {
     bridge,
     courtyard: court,
     gates,
+    warehouse,
     walls,
     decor,
   };

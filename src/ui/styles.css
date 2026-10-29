@@ -722,3 +722,151 @@ button.stat {
   width: 100%;
   margin-top: 18px;
 }
+
+/* Bandeau des vues intérieures */
+.scene-header {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--safe-top) + 76px);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 calc(var(--safe-right) + 10px) 0 calc(var(--safe-left) + 10px);
+  pointer-events: none;
+}
+
+.scene-header[hidden] {
+  display: none;
+}
+
+.scene-header > * {
+  pointer-events: auto;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: var(--touch);
+  padding: 0 16px 0 12px;
+  border: 1.5px solid var(--brass-dark);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #f3e3b4, #d9bd77);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow:
+    0 2px 0 var(--brass-dark),
+    0 4px 10px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.back-button span:first-child {
+  font-size: 24px;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+.build-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch);
+  padding: 0 16px 0 12px;
+  border: 1.5px solid var(--brass-dark);
+  border-radius: 22px;
+  background: var(--wood-grain);
+  color: var(--parchment);
+  font-weight: 700;
+  font-size: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.build-toggle .icon {
+  color: var(--brass-light);
+}
+
+.build-toggle.is-on {
+  background: linear-gradient(180deg, #f3e3b4, #d9bd77);
+  color: var(--ink);
+}
+
+.build-toggle.is-on .icon {
+  color: var(--ink);
+}
+
+/* Fondu entre les scènes */
+.scene-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: #0d0b08;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.scene-fade.is-on {
+  opacity: 1;
+}
+
+/* Panneaux d'action des bâtiments */
+.panel {
+  font-style: normal;
+  color: var(--ink);
+}
+
+.panel-desc {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--ink-muted);
+}
+
+.panel-status {
+  margin: 0 0 12px;
+  font-weight: 700;
+}
+
+.panel-status.warning {
+  color: #9b3a24;
+}
+
+.panel h3 {
+  margin: 4px 0 8px;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 17px;
+}
+
+.panel .parchment-button {
+  width: 100%;
+}
+
+.panel-cash {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.build-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.build-grid .parchment-button {
+  padding: 6px 8px;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.parchment-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}

@@ -1,6 +1,6 @@
 import { Graphics } from 'pixi.js';
-import { MAP } from '../data/balance';
-import { PALETTE } from './config';
+import { MAP } from '../../data/balance';
+import { PALETTE } from '../config';
 
 /** Grille des tuiles, visible seulement en mode construction (étape 3). */
 export function createGrid(): Graphics {

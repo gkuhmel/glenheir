@@ -76,7 +76,7 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 ### La distillerie : bâtiment et vue intérieure
 
 - **Sur la carte**, la distillerie est un bâtiment unique au milieu de la cour, dessiné en détail : murs de pierre, toits d'ardoise, four à malt coiffé d'une pagode, cheminée. Son extérieur reflète ce qui est construit à l'intérieur : chaque nouvel emplacement ajoute une aile ou un étage, la pagode fume quand la malterie tourne, la cheminée fume quand les alambics chauffent. En ruine au départ (toits percés, murs envahis de lierre), il se restaure salle par salle.
-- **Taper la distillerie** ouvre sa **vue intérieure en coupe de profil**, comme une maquette ouverte : les salles sont côte à côte et sur plusieurs niveaux, on y voit les machines (malt étalé, cuve d'empâtage, cuves de fermentation, alambics de cuivre) et les personnages travailler. Pan horizontal et zoom au doigt ; un bouton « Carte » ramène à l'extérieur.
+- **Taper la distillerie** ouvre sa **vue intérieure en coupe de profil**, comme une maquette ouverte : les salles sont côte à côte et sur plusieurs niveaux, on y voit les machines (malt étalé, cuve d'empâtage, cuves de fermentation, alambics de cuivre) et les personnages travailler. Pan horizontal et zoom au doigt ; un bouton « Domaine » ramène à la carte.
 - **Grille de salles** : jusqu'à 8 emplacements de large sur 3 niveaux (cave, rez-de-chaussée, étage). Au départ, le rez-de-chaussée compte 5 salles en ruine : malterie, brasserie, cuves de fermentation, salle des alambics, accueil. Les autres emplacements s'achètent un par un (à gauche, à droite, un étage, une cave), puis on y construit la salle de son choix ; les escaliers se placent automatiquement.
 - **Types de salles** : malterie, brasserie, cuves de fermentation, salle des alambics, atelier gin, accueil (guichet), salle de dégustation, boutique, café, toilettes, salle du personnel (repos, moral).
 - **Fusion** : deux ou trois salles identiques voisines sur le même niveau fusionnent en une grande salle (capacités additionnées, +10 % d'efficacité par salle fusionnée, décor plus riche).
@@ -283,11 +283,11 @@ Tout est dessiné en code (formes vectorielles, dégradés, lumières) dans l'es
 ### UX mobile (portrait)
 
 - **Carte** : pan à un doigt, zoom au pincement ; taper la distillerie ou un chai fait entrer dans sa vue intérieure (transition zoomée), taper un champ ou un personnage ouvre sa fiche.
-- **Vues intérieures** : pan horizontal et zoom ; taper une machine, une salle, un emplacement ou un fût donne ses actions directement dans la scène ; bouton « Carte » pour ressortir.
+- **Vues intérieures** : pan horizontal et zoom ; taper une machine, une salle, un emplacement ou un fût donne ses actions directement dans la scène (le tiroir s'ouvre et la caméra garde l'élément touché visible au-dessus) ; bouton « Domaine » pour ressortir.
 - **Barre du haut** : trésorerie, renommée, date de jeu et saison.
-- **Barre du bas** (5 onglets) : Distillerie (carte), Production, Chai, Marché, Équipe.
+- **Barre du bas** (5 onglets) : Domaine (la carte), Production, Chai, Marché, Équipe.
 - **Panneaux en tiroir** qui montent du bas, utilisables au pouce, la carte reste visible au-dessus.
-- **Mode construction** : dans la vue intérieure, les emplacements achetables et libres apparaissent en pointillés, on choisit la salle et on valide ; sur la carte, grille visible et fantôme pour les parcelles et les chais.
+- **Mode construction** : dans la vue intérieure, le bouton « Agrandir » fait apparaître en pointillés les emplacements achetables avec leur prix ; on en touche un pour l'acheter, puis on touche l'emplacement vide pour choisir la salle ; sur la carte, grille visible et fantôme pour les parcelles et les chais.
 - **Files et minuteurs** visibles directement dans les scènes (icône + temps restant au-dessus de chaque machine) ; sur la carte, un résumé au-dessus de chaque bâtiment.
 - **Notifications** dans le jeu uniquement pour le MVP (pas de push).
 - Cibles tactiles de 44 px minimum ; tout le texte en français, structure prête pour l'anglais.

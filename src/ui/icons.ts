@@ -6,9 +6,9 @@ const svg = (body: string, className = 'icon') =>
 
 /** Icônes des onglets : trait laiton, aplats sombres. */
 export const TAB_ICONS: Record<TabId, string> = {
-  // Distillerie : four à malt et son toit en pagode.
+  // Domaine : collines, soleil et pin.
   map: svg(
-    '<path class="fill" d="M4 21V12h16v9z"/><path d="M4 21V12h16v9M2.5 12 6 8h12l3.5 4M8.5 8l1.5-3.5h4L15.5 8M11 4.5V3h2v1.5M10 21v-5h4v5"/>',
+    '<path class="fill" d="M2 20l6-8 4 5 3-3 7 6z"/><path d="M2 20l6-8 4 5 3-3 7 6zM2 20h20"/><circle cx="17" cy="6.5" r="2.5"/><path d="M6 12V9.5M4.5 10.5 6 7l1.5 3.5"/>',
   ),
   // Production : alambic à repasse.
   production: svg(
