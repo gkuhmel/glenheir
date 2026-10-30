@@ -1,15 +1,21 @@
 import { emptyLot } from '../sim/profile';
-import type { GameState } from '../sim/state';
+import type { GameState, StaffRole } from '../sim/state';
 import { createStartingBuilding, createStartingWarehouse } from '../sim/systems/building';
 import { createStartingFields } from '../sim/systems/fields';
 import { syncMachines } from '../sim/systems/production';
 import { createInheritedCasks } from '../sim/systems/warehouse';
+import { newEmployee, refreshCandidates } from '../sim/systems/staff';
+import { createRng } from '../sim/rng';
+import { STARTING_STAFF } from '../data/balance';
+
+/** Nom donné aux employés des vieilles sauvegardes au-delà de l'ouvrier de départ. */
+const FALLBACK_NAME = 'Dougal Grant';
 
 /** Une migration transforme l'état sauvegardé de la version N vers N + 1. */
 export type Migration = (state: unknown) => unknown;
 
 /** Version actuelle du format de sauvegarde. */
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /**
  * Migrations indexées par version de départ : `migrations[1]` transforme un
@@ -74,6 +80,21 @@ export const migrations: Record<number, Migration> = {
     const old = state as GameState;
     const next = { ...old, market: { ...old.market, casksSoldThisMonth: 0 } };
     next.casks = [...old.casks, ...createInheritedCasks(next)];
+    return next;
+  },
+  // v6 → v7 (étape 6) : personnel nommé, moral, expérience ; candidats du mois.
+  6: (state) => {
+    const old = state as { staff: { id: number; role: StaffRole; level: number }[] } & GameState;
+    const next: GameState = {
+      ...old,
+      staff: old.staff.map((e, i) =>
+        newEmployee(e.id, { ...e, name: STARTING_STAFF[i]?.name ?? FALLBACK_NAME }),
+      ),
+      candidates: [],
+    };
+    const rng = createRng(next.rngState);
+    refreshCandidates(next, rng);
+    next.rngState = rng.state;
     return next;
   },
 };

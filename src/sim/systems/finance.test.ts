@@ -54,8 +54,8 @@ describe('prêts', () => {
 
 describe('salaires', () => {
   it('suit la grille de chaque rôle', () => {
-    expect(salaryOf({ id: 1, role: 'worker', level: 1 })).toBe(1_800);
-    expect(salaryOf({ id: 1, role: 'cellarMaster', level: 5 })).toBe(6_500);
+    expect(salaryOf({ role: 'worker', level: 1 })).toBe(1_800);
+    expect(salaryOf({ role: 'cellarMaster', level: 5 })).toBe(6_500);
   });
 
   it('verse les salaires le 1er de chaque mois, pas au démarrage', () => {

@@ -4,6 +4,8 @@ import { emptyLot, type Lot } from './profile';
 import { createStartingFields, type Field } from './systems/fields';
 import { syncMachines, type Machine } from './systems/production';
 import { createInheritedCasks, type Cask } from './systems/warehouse';
+import { newEmployee, refreshCandidates } from './systems/staff';
+import { createRng } from './rng';
 import {
   createStartingBuilding,
   createStartingWarehouse,
@@ -36,6 +38,27 @@ export interface Employee {
   role: StaffRole;
   /** Compétence, de 1 à 5. */
   level: number;
+  name: string;
+  /** Moral, de 0 à 100. */
+  morale: number;
+  /** Heures travaillées depuis le dernier niveau gagné. */
+  xp: number;
+  /** Salle de la machine tenue cette heure (null : pas à une machine). */
+  roomId: number | null;
+  /** Au travail cette heure (à une machine, ou au chai pour le maître de chai). */
+  working: boolean;
+  /** En formation jusqu'à cette heure de jeu (absent), sinon null. */
+  trainingUntil: number | null;
+  /** Heures d'affilée passées à moral nul (il démissionne au bout d'un mois). */
+  despairHours: number;
+}
+
+/** Un candidat qui se présente ce mois-ci. */
+export interface Candidate {
+  id: number;
+  role: StaffRole;
+  level: number;
+  name: string;
 }
 
 /** Un emprunt, remboursé par mensualités constantes. */
@@ -73,6 +96,8 @@ export interface GameState {
   finance: Finance;
   renown: number;
   staff: Employee[];
+  /** Candidats du mois, renouvelés le 1er. */
+  candidates: Candidate[];
   /** La distillerie et sa grille de salles. */
   building: Building;
   /** Chais, bâtiments séparés sur la carte. */
@@ -90,7 +115,7 @@ export interface GameState {
 }
 
 export function createInitialState(seed: number): GameState {
-  const staff = STARTING_STAFF.map((employee, i) => ({ id: i + 1, ...employee }));
+  const staff = STARTING_STAFF.map((employee, i) => newEmployee(i + 1, employee));
   let nextId = staff.length + 1;
   const building = createStartingBuilding(nextId);
   nextId += building.rooms.length;
@@ -105,6 +130,7 @@ export function createInitialState(seed: number): GameState {
     finance: { cash: ECONOMY.startingCash, loans: [], negativeMonths: 0, bankrupt: false },
     renown: ECONOMY.startingRenown,
     staff,
+    candidates: [],
     building,
     warehouses: [warehouse],
     machines: [],
@@ -118,5 +144,8 @@ export function createInitialState(seed: number): GameState {
   syncMachines(state, true);
   // Le grand-oncle a laissé quelques vieux fûts dans le chai en ruine.
   state.casks = createInheritedCasks(state);
+  const rng = createRng(state.rngState);
+  refreshCandidates(state, rng);
+  state.rngState = rng.state;
   return state;
 }

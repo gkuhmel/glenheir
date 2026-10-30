@@ -1,10 +1,11 @@
 import type { RoomType } from '../data/content';
 import type { Rng } from './rng';
 import { createRng } from './rng';
-import type { GameState } from './state';
+import type { GameState, StaffRole } from './state';
 import { runFields } from './systems/fields';
 import { runMonthlyFinance } from './systems/finance';
 import { runProduction } from './systems/production';
+import { assignStaff, refreshCandidates, runStaff, workEfficiency } from './systems/staff';
 import { runWarehouses } from './systems/warehouse';
 import { toGameDate, type Season } from './time';
 
@@ -38,7 +39,12 @@ export type SimEvent =
   | { type: 'ginBottled'; hour: number; roomId: number; bottles: number }
   | { type: 'caskFilled'; hour: number; caskId: number }
   | { type: 'caskMatured'; hour: number; caskId: number; years: number }
-  | { type: 'warehouseExtended'; hour: number; warehouseId: number };
+  | { type: 'warehouseExtended'; hour: number; warehouseId: number }
+  | { type: 'hired'; hour: number; employeeId: number }
+  | { type: 'employeeLeft'; hour: number; employeeId: number }
+  | { type: 'employeeQuit'; hour: number; name: string; role: StaffRole }
+  | { type: 'levelUp'; hour: number; employeeId: number; level: number }
+  | { type: 'trainingDone'; hour: number; employeeId: number; level: number };
 
 /**
  * Avance l'état d'une heure de jeu (modifie `state` en place) et renvoie les
@@ -48,7 +54,18 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
   state.time.hour += 1;
   const hour = state.time.hour;
   const date = toGameDate(hour);
-  const events: SimEvent[] = [...runProduction(state), ...runWarehouses(state)];
+  const operators = assignStaff(state);
+  const crew = new Map(
+    [...operators].map(([roomId, e]) => [
+      roomId,
+      { role: e.role, level: e.level, efficiency: workEfficiency(e) },
+    ]),
+  );
+  const events: SimEvent[] = [
+    ...runProduction(state, crew),
+    ...runWarehouses(state),
+    ...runStaff(state),
+  ];
   if (date.hour !== 0) return events;
 
   events.push({ type: 'dayStarted', hour });
@@ -62,6 +79,7 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
     events.push({ type: 'monthStarted', hour, month: date.month });
     state.market.retailBottlesThisMonth = 0;
     state.market.casksSoldThisMonth = 0;
+    refreshCandidates(state, rng);
     events.push(...runMonthlyFinance(state));
   }
   return events;

@@ -53,7 +53,56 @@ export const SALARIES = {
 } as const;
 
 /** Personnel au début de partie (jalon 1 « La ruine »). */
-export const STARTING_STAFF = [{ role: 'worker', level: 1 }] as const;
+export const STARTING_STAFF = [{ role: 'worker', level: 1, name: 'Angus MacLeod' }] as const;
+
+/** Personnel : recrutement, compétences, moral, effets de chaque rôle. */
+export const STAFF = {
+  maxLevel: 5,
+  /** Rôles recrutables à ce stade (le guide arrive avec les visiteurs). */
+  hireableRoles: ['worker', 'distiller', 'cellarMaster'],
+  hiring: {
+    /** Coût d'embauche et indemnité de licenciement, en mois de salaire. */
+    salaryMonths: 1,
+    severanceMonths: 1,
+    /** Candidats par rôle, renouvelés le 1er de chaque mois. */
+    candidatesPerRole: 2,
+    /** Probabilité d'un candidat de niveau 1, 2, 3. */
+    levelWeights: [0.5, 0.35, 0.15],
+  },
+  /** Formation : 2 mois de salaire, absent 10 jours, +1 niveau. */
+  training: { salaryMonths: 2, days: 10 },
+  /** Heures de travail pour gagner un niveau : 720 × niveau actuel (1 mois au niveau 1). */
+  xpHoursPerLevel: 720,
+  /** Un ouvrier (ou distillateur aux alambics) travaille 5 % plus vite par niveau au-delà du 1er. */
+  speedPerLevel: 0.05,
+  morale: {
+    start: 80,
+    /** Variation par heure de travail et par heure de repos (×2 avec une salle du personnel). */
+    workPerHour: -0.12,
+    restPerHour: 0.25,
+    staffRoomFactor: 2,
+    /** Sous ce seuil, l'employé travaille 20 % moins vite. */
+    lowThreshold: 30,
+    lowEfficiency: 0.8,
+    /** Prime : +25 de moral pour un demi-mois de salaire. */
+    bonus: 25,
+    bonusSalaryShare: 0.5,
+    /** À 0 de moral pendant un mois, il démissionne. */
+    quitAfterHours: 720,
+  },
+  distiller: {
+    /** Qualité ajoutée au new make par niveau du distillateur aux alambics. */
+    qualityPerLevel: 2,
+    /** Part de la pénalité de coupe effacée par niveau. */
+    cutPenaltyReductionPerLevel: 0.15,
+  },
+  cellarMaster: {
+    /** Part des anges réduite de 5 % par niveau dans les chais restaurés. */
+    angelsReductionPerLevel: 0.05,
+    /** Heures de présence au chai (il révèle la qualité quel que soit l'horaire). */
+    workHours: [8, 18],
+  },
+} as const;
 
 /** Distillerie : grille de salles et coûts d'agrandissement. */
 export const BUILDING = {

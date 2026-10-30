@@ -39,7 +39,7 @@ describe('sauvegarde', () => {
   });
 });
 
-describe('migrations v1 → v6', () => {
+describe('migrations v1 → v7', () => {
   it('reprend une partie de l’étape 1 sans la perdre', () => {
     const v1 = JSON.stringify({
       version: 1,
@@ -51,6 +51,12 @@ describe('migrations v1 → v6', () => {
     expect(state.time.hour).toBe(500);
     expect(state.finance).toEqual({ cash: 50_000, loans: [], negativeMonths: 0, bankrupt: false });
     expect(state.staff).toHaveLength(1);
+    expect(state.staff[0]).toMatchObject({
+      name: 'Angus MacLeod',
+      morale: 80,
+      trainingUntil: null,
+    });
+    expect(state.candidates).toHaveLength(6);
     expect(state.journal).toEqual({ entries: [], monthly: [] });
     expect(state.building.rooms).toHaveLength(5);
     expect(state.warehouses).toHaveLength(1);
@@ -76,6 +82,7 @@ describe('migrations v1 → v6', () => {
       ...state.warehouses,
       ...state.fields,
       ...state.casks,
+      ...state.candidates,
     ].map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(state.nextId).toBe(Math.max(...ids) + 1);

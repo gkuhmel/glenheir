@@ -3,6 +3,7 @@ import {
   CASKS,
   INHERITED_CASKS,
   MARKET,
+  STAFF,
   TERROIRS,
   WAREHOUSE,
 } from '../../data/balance';
@@ -12,6 +13,7 @@ import type { GameState } from '../state';
 import type { SimEvent } from '../tick';
 import { HOURS_PER_YEAR } from '../time';
 import type { Warehouse } from './building';
+import { cellarMaster } from './staff';
 
 export type CaskType = keyof typeof CASKS.types;
 
@@ -96,7 +98,11 @@ export function qualityEstimate(cask: Cask): { low: number; high: number } {
 /** Part des anges annuelle d'un fût : bien plus forte sous le toit percé d'un chai en ruine. */
 export function angelsShareOf(state: GameState, cask: Cask): number {
   const warehouse = state.warehouses.find((w) => w.id === cask.warehouseId);
-  return warehouse?.ruined ? WAREHOUSE.ruinedAngelsShare : TERROIRS[state.terroir].angelsShare;
+  if (warehouse?.ruined) return WAREHOUSE.ruinedAngelsShare;
+  // Le maître de chai surveille les fûts : moins de pertes.
+  const master = cellarMaster(state);
+  const care = master ? 1 - STAFF.cellarMaster.angelsReductionPerLevel * master.level : 1;
+  return TERROIRS[state.terroir].angelsShare * care;
 }
 
 /** Une heure au chai : maturation selon le fût et la hauteur, part des anges, anniversaires. */

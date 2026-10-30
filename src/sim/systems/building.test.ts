@@ -44,6 +44,7 @@ describe('distillerie de départ', () => {
       ...state.warehouses,
       ...state.fields,
       ...state.casks,
+      ...state.candidates,
     ].map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(state.nextId).toBe(Math.max(...ids) + 1);

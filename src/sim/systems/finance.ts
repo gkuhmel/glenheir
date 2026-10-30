@@ -16,7 +16,7 @@ export function loanPayment(principal: number, months: number = FINANCE.loan.ter
   return annuityPayment(principal, MONTHLY_RATE, months);
 }
 
-export function salaryOf(employee: Employee): number {
+export function salaryOf(employee: Pick<Employee, 'role' | 'level'>): number {
   const scale = SALARIES[employee.role];
   return scale[Math.min(scale.length, Math.max(1, employee.level)) - 1] as number;
 }

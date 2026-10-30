@@ -1,4 +1,14 @@
-import { CASKS, DEBUG, FINANCE, GIN, MARKET, PRODUCTION, WAREHOUSE } from '../data/balance';
+import {
+  CASKS,
+  DEBUG,
+  FINANCE,
+  GIN,
+  MARKET,
+  PRODUCTION,
+  STAFF,
+  TIME,
+  WAREHOUSE,
+} from '../data/balance';
 import type { RoomType } from '../data/content';
 import { recordTransaction, roundMoney } from './journal';
 import { addToLot, baseProfile, takeFromLot } from './profile';
@@ -24,7 +34,8 @@ import {
   type PeatLevel,
 } from './systems/production';
 import { buildCost, isPurchasable, restoreCost, slotCost } from './systems/building';
-import { loanPayment, outstandingDebt } from './systems/finance';
+import { loanPayment, outstandingDebt, salaryOf } from './systems/finance';
+import { newEmployee } from './systems/staff';
 import type { SimEvent } from './tick';
 
 /** Actions du joueur. L'interface n'écrit jamais directement dans l'état. */
@@ -51,6 +62,10 @@ export type Command =
   | { type: 'sellGin'; bottles: number }
   | { type: 'sellCask'; caskId: number }
   | { type: 'sellMalt'; tonnes: number }
+  | { type: 'hire'; candidateId: number }
+  | { type: 'fire'; employeeId: number }
+  | { type: 'train'; employeeId: number }
+  | { type: 'giveBonus'; employeeId: number }
   | { type: 'debugAgeCasks'; years: number }
   | { type: 'debugAddCash' };
 
@@ -85,7 +100,11 @@ export type CommandError =
   | 'retailCapReached'
   | 'caskNotFound'
   | 'caskTooYoung'
-  | 'brokerCapReached';
+  | 'brokerCapReached'
+  | 'candidateNotFound'
+  | 'employeeNotFound'
+  | 'maxLevel'
+  | 'inTraining';
 
 export type CommandResult = { ok: true; events: SimEvent[] } | { ok: false; error: CommandError };
 
@@ -135,7 +154,7 @@ function repayLoan(state: GameState, loanId: number, requested?: number): Comman
 function invest(
   state: GameState,
   cost: number,
-  category: 'investment' | 'materials' = 'investment',
+  category: 'investment' | 'materials' | 'salaries' = 'investment',
 ): boolean {
   if (cost > state.finance.cash) return false;
   if (cost > 0) recordTransaction(state, -cost, category);
@@ -323,6 +342,55 @@ function sellCask(state: GameState, caskId: number): CommandResult {
   return ok(state, [{ type: 'traded', hour: state.time.hour }]);
 }
 
+/** Embauche d'un candidat du mois : un mois de salaire à la signature. */
+function hire(state: GameState, candidateId: number): CommandResult {
+  const index = state.candidates.findIndex((c) => c.id === candidateId);
+  const candidate = state.candidates[index];
+  if (!candidate) return fail('candidateNotFound');
+  const cost = salaryOf(candidate) * STAFF.hiring.salaryMonths;
+  if (!invest(state, cost, 'salaries')) return fail('notEnoughCash');
+  state.candidates.splice(index, 1);
+  // Le candidat garde son identifiant : il devient l'employé.
+  state.staff.push(newEmployee(candidate.id, candidate));
+  return ok(state, [{ type: 'hired', hour: state.time.hour, employeeId: candidate.id }]);
+}
+
+/** Licenciement : un mois de salaire d'indemnité. */
+function fire(state: GameState, employeeId: number): CommandResult {
+  const index = state.staff.findIndex((e) => e.id === employeeId);
+  const employee = state.staff[index];
+  if (!employee) return fail('employeeNotFound');
+  const cost = salaryOf(employee) * STAFF.hiring.severanceMonths;
+  if (!invest(state, cost, 'salaries')) return fail('notEnoughCash');
+  state.staff.splice(index, 1);
+  return ok(state, [{ type: 'employeeLeft', hour: state.time.hour, employeeId }]);
+}
+
+/** Formation : deux mois de salaire, absent dix jours, un niveau de plus au retour. */
+function train(state: GameState, employeeId: number): CommandResult {
+  const employee = state.staff.find((e) => e.id === employeeId);
+  if (!employee) return fail('employeeNotFound');
+  if (employee.trainingUntil !== null) return fail('inTraining');
+  if (employee.level >= STAFF.maxLevel) return fail('maxLevel');
+  const cost = salaryOf(employee) * STAFF.training.salaryMonths;
+  if (!invest(state, cost, 'salaries')) return fail('notEnoughCash');
+  employee.trainingUntil = state.time.hour + STAFF.training.days * TIME.hoursPerDay;
+  employee.roomId = null;
+  employee.working = false;
+  return ok(state);
+}
+
+/** Prime : un demi-mois de salaire pour remonter le moral. */
+function giveBonus(state: GameState, employeeId: number): CommandResult {
+  const employee = state.staff.find((e) => e.id === employeeId);
+  if (!employee) return fail('employeeNotFound');
+  const cost = roundMoney(salaryOf(employee) * STAFF.morale.bonusSalaryShare);
+  if (!invest(state, cost, 'salaries')) return fail('notEnoughCash');
+  employee.morale = Math.min(100, employee.morale + STAFF.morale.bonus);
+  employee.despairHours = 0;
+  return ok(state);
+}
+
 /** Malt vendu à la distillerie voisine, au prix fixe de la tonne. */
 function sellMalt(state: GameState, tonnes: number): CommandResult {
   if (!Number.isFinite(tonnes) || tonnes <= 0) return fail('amountInvalid');
@@ -423,6 +491,14 @@ export function executeCommand(state: GameState, command: Command): CommandResul
       return sellCask(state, command.caskId);
     case 'sellMalt':
       return sellMalt(state, command.tonnes);
+    case 'hire':
+      return hire(state, command.candidateId);
+    case 'fire':
+      return fire(state, command.employeeId);
+    case 'train':
+      return train(state, command.employeeId);
+    case 'giveBonus':
+      return giveBonus(state, command.employeeId);
     case 'debugAgeCasks':
       ageAllCasks(state, Math.round(command.years * HOURS_PER_YEAR));
       return ok(state);

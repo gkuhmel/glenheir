@@ -1,8 +1,8 @@
-import { GIN, PRODUCTION, TERROIRS } from '../../data/balance';
+import { GIN, PRODUCTION, STAFF, TERROIRS } from '../../data/balance';
 import type { RoomType } from '../../data/content';
 import { recordTransaction, roundMoney } from '../journal';
 import { addToLot, applyModifier, takeFromLot, type Profile } from '../profile';
-import type { GameState } from '../state';
+import type { GameState, StaffRole } from '../state';
 import type { SimEvent } from '../tick';
 import { TIME } from '../../data/balance';
 import { roomGroups, type Building, type Room } from './building';
@@ -163,6 +163,7 @@ function runStills(
   machine: StillMachine,
   efficiency: number,
   events: SimEvent[],
+  operator: Operator | undefined,
 ): void {
   const hour = state.time.hour;
   const capacity = stillsCapacity(machine);
@@ -174,9 +175,16 @@ function runStills(
     const lpa = Math.round(machine.batch.amount * distillation.lpaPerLitre * cut.volume * 10) / 10;
     const stills =
       machine.stills === 'medium' ? distillation.stills.medium : distillation.stills.small;
+    // Un distillateur aux alambics affine les coupes : pénalité réduite et qualité en plus.
+    const distiller = operator?.role === 'distiller' ? operator.level : 0;
+    const { cutPenaltyReductionPerLevel, qualityPerLevel } = STAFF.distiller;
+    const cutQuality =
+      cut.quality < 0
+        ? cut.quality * Math.max(0, 1 - cutPenaltyReductionPerLevel * distiller)
+        : cut.quality;
     const profile = applyModifier(applyModifier(machine.batch.profile, stills.profile), {
       ...cut.profile,
-      quality: cut.quality,
+      quality: cutQuality + qualityPerLevel * distiller,
     });
     addToLot(state.stocks.newMake, lpa, profile);
     machine.batch = null;
@@ -327,22 +335,70 @@ function runGin(
 }
 
 /**
+ * La machine a-t-elle du travail cette heure ? Un lot en cours, ou de quoi en
+ * lancer un. Le moût qui attend une cuve libre et les cuves qui fermentent n'ont
+ * besoin de personne.
+ */
+export function needsOperator(state: GameState, machine: Machine): boolean {
+  switch (machine.kind) {
+    case 'fermentation':
+      return false;
+    case 'mashing':
+      if (machine.batch) return !isDone(machine.batch);
+      return hasOrders(machine.orders) && state.stocks.malt.amount >= PRODUCTION.mashing.minTonnes;
+    case 'malting':
+      if (machine.batch) return true;
+      return (
+        hasOrders(machine.orders) && state.stocks.barley.amount >= PRODUCTION.malting.minTonnes
+      );
+    case 'distillation':
+      if (machine.batch) return true;
+      return (
+        stillsCapacity(machine) > 0 &&
+        hasOrders(machine.orders) &&
+        readyVessel(state, workingRooms(state.building)) !== null
+      );
+    case 'gin':
+      if (machine.batch) return true;
+      return (
+        hasOrders(machine.orders) &&
+        state.stocks.newMake.amount >= GIN.batchBottles * GIN.lpaPerBottle
+      );
+  }
+}
+
+/** Qui tient une machine : son rôle et son niveau comptent pour les alambics. */
+export interface Operator {
+  role: StaffRole;
+  level: number;
+  /** Vitesse de travail (compétence et moral). */
+  efficiency: number;
+}
+
+/**
  * Une heure de production, de l'aval vers l'amont pour libérer la place au plus
  * tôt : alambics, cuves, brasserie, malterie. Seules les salles en état tournent ;
- * une salle fusionnée travaille plus vite (son efficacité).
+ * une salle fusionnée travaille plus vite (son efficacité). Une machine qui a du
+ * travail ne tourne que si quelqu'un la tient (voir `assignStaff`).
  */
-export function runProduction(state: GameState): SimEvent[] {
+export function runProduction(
+  state: GameState,
+  operators: ReadonlyMap<number, Operator>,
+): SimEvent[] {
   const events: SimEvent[] = [];
   const active = workingRooms(state.building);
   const order: Machine['kind'][] = ['gin', 'distillation', 'fermentation', 'mashing', 'malting'];
   for (const kind of order) {
     for (const machine of state.machines) {
       if (machine.kind !== kind) continue;
-      const efficiency = active.get(machine.roomId);
-      if (efficiency === undefined) continue;
+      const room = active.get(machine.roomId);
+      if (room === undefined) continue;
+      const operator = operators.get(machine.roomId);
+      if (!operator && needsOperator(state, machine)) continue;
+      const efficiency = room * (operator?.efficiency ?? 1);
       switch (machine.kind) {
         case 'distillation':
-          runStills(state, machine, efficiency, events);
+          runStills(state, machine, efficiency, events, operator);
           break;
         case 'fermentation':
           runFermentation(machine, efficiency);
