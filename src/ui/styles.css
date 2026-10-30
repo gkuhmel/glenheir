@@ -1141,3 +1141,85 @@ button.stat {
 .stock-line.is-legal strong {
   color: #8a6a1e;
 }
+
+/* Équipe */
+.staff-card {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(110, 86, 56, 0.45);
+  border-left-width: 6px;
+  border-radius: 8px;
+  background: rgba(255, 250, 235, 0.45);
+}
+
+.staff-card.role-worker {
+  border-left-color: #3d5a80;
+}
+
+.staff-card.role-distiller {
+  border-left-color: #b5651d;
+}
+
+.staff-card.role-cellarMaster {
+  border-left-color: #7a6a4a;
+}
+
+.staff-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.staff-head h4 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 16px;
+}
+
+.staff-stars {
+  color: #a9822f;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.staff-card p {
+  margin: 2px 0 4px;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--ink-muted);
+}
+
+.staff-card .staff-task {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.staff-morale {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  font-size: 14px;
+}
+
+.morale-fill {
+  background: #5f8a3a;
+}
+
+.morale-fill.is-low {
+  background: #9b3a24;
+}
+
+.staff-role-title {
+  margin: 12px 0 2px;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 15px;
+}
+
+.staff-card .button-row {
+  margin-top: 6px;
+}

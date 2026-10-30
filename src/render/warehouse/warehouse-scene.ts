@@ -41,7 +41,8 @@ export type WarehouseSelection =
   | { kind: 'place'; place: number }
   | { kind: 'extension' }
   /** Chai en ruine touché ailleurs que sur un fût : sa restauration. */
-  | { kind: 'ruin' };
+  | { kind: 'ruin' }
+  | { kind: 'employee'; employeeId: number };
 
 export interface WarehouseHandlers {
   select(warehouseId: number, selection: WarehouseSelection | null): void;
@@ -79,7 +80,9 @@ export class WarehouseScene implements Scene {
   private readonly angels = new Particles(createRng(808));
   private readonly motes: { g: Graphics; x: number; y: number; phase: number }[] = [];
   private readonly selectionRing = new Graphics();
-  private readonly worker = new Person(OUTFITS.worker, 1.3);
+  private readonly master = new Person(OUTFITS.cellarMaster, 1.3);
+  /** Le maître de chai en ronde (null : personne au chai). */
+  private masterId: number | null = null;
   private readonly rng = createRng(4711);
   private warehouseId: number | null = null;
   private places: number = WAREHOUSE.startPlaces;
@@ -104,8 +107,8 @@ export class WarehouseScene implements Scene {
   ) {
     this.selectionRing.visible = false;
     this.shafts.blendMode = 'add';
-    this.worker.view.scale.set(0.95);
-    this.worker.view.position.set(300, AISLE_Y);
+    this.master.view.scale.set(0.95);
+    this.master.view.position.set(300, AISLE_Y);
     this.world.addChild(
       this.hall,
       this.shafts,
@@ -113,7 +116,7 @@ export class WarehouseScene implements Scene {
       this.lamps,
       this.angels.container,
       this.selectionRing,
-      this.worker.view,
+      this.master.view,
     );
     this.root.addChild(this.world);
   }
@@ -133,6 +136,15 @@ export class WarehouseScene implements Scene {
   setState(state: GameState): void {
     const warehouse = state.warehouses.find((w) => w.id === this.warehouseId);
     if (!warehouse) return;
+    // Le maître de chai n'est là que pendant sa ronde.
+    const master = state.staff.find(
+      (e) => e.role === 'cellarMaster' && e.working && !warehouse.ruined,
+    );
+    this.masterId = master?.id ?? null;
+    if (this.master.view.visible !== (master !== undefined)) {
+      this.master.view.visible = master !== undefined;
+      this.invalidate();
+    }
     const casks = state.casks.filter((c) => c.warehouseId === warehouse.id);
     const looks = casks.map((c) => [
       c.place,
@@ -180,6 +192,19 @@ export class WarehouseScene implements Scene {
   tap(sx: number, sy: number): void {
     if (this.warehouseId === null) return;
     const p = screenToWorld(this.camera, sx, sy);
+    const v = this.master.view;
+    if (
+      this.masterId !== null &&
+      v.visible &&
+      Math.abs(p.x - v.x) < 22 &&
+      p.y < v.y + 6 &&
+      p.y > v.y - 100
+    ) {
+      this.clearSelection();
+      this.selection = { kind: 'employee', employeeId: this.masterId };
+      this.handlers.select(this.warehouseId, this.selection);
+      return;
+    }
     const place = placeAt(p.x, p.y, this.places);
     const site = extensionSite(this.places);
     if (this.ruined) {
@@ -241,7 +266,7 @@ export class WarehouseScene implements Scene {
 
   /** Ronde de l'ouvrier : il marche dans l'allée, s'arrête, sonde un fût, repart. */
   private updateWorker(dtMs: number): void {
-    const person = this.worker;
+    const person = this.master;
     const x = person.view.x;
     if (this.walk.pause > 0) {
       this.walk.pause -= dtMs;
@@ -461,7 +486,7 @@ export class WarehouseScene implements Scene {
     };
     for (const slice of slices(drawCasks, width)) this.casks.addChild(slice);
 
-    if (this.worker.view.x > columnX(cols)) this.worker.view.x = columnX(cols) - 40;
+    if (this.master.view.x > columnX(cols)) this.master.view.x = columnX(cols) - 40;
     // Chai agrandi pendant que le chantier est choisi : on suit le nouveau chantier.
     if (this.selection?.kind === 'extension') {
       const center = this.drawRing();

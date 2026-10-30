@@ -1,7 +1,7 @@
 import { PRODUCTION } from '../data/balance';
 import { formatShortDuration, t } from '../i18n';
 import type { GameState } from '../sim/state';
-import { isDone, remainingHours, type Machine } from '../sim/systems/production';
+import { isDone, needsOperator, remainingHours, type Machine } from '../sim/systems/production';
 
 export interface MachineStatus {
   text: string;
@@ -12,6 +12,12 @@ export interface MachineStatus {
 /** État lisible d'une machine, pour les badges des scènes et les panneaux. */
 export function machineStatus(state: GameState, machine: Machine): MachineStatus {
   const stopped = { text: t('machine.stopped'), running: false };
+  // Du travail, mais personne pour le faire : la machine est à l'arrêt.
+  if (needsOperator(state, machine) && !state.staff.some((e) => e.roomId === machine.roomId))
+    return {
+      text: t(machine.kind === 'distillation' ? 'machine.waitDistiller' : 'machine.waitWorker'),
+      running: false,
+    };
   switch (machine.kind) {
     case 'malting':
       if (machine.batch) {

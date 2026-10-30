@@ -9,6 +9,9 @@ interface Point {
   y: number;
 }
 
+/** Où doit être l'employé : à une machine, au repos (salle du personnel si elle existe). */
+export type Duty = { kind: 'machine'; roomId: number } | { kind: 'rest'; roomId: number | null };
+
 const SPEED = 75;
 
 /** Les cases d'un niveau reliées à son escalier (ou tout le rez-de-chaussée). */
@@ -23,9 +26,10 @@ function reachable(building: Building, room: Room): boolean {
 }
 
 /**
- * Un employé qui vit dans la vue en coupe : il choisit une salle, s'y rend en
- * passant par les escaliers, y travaille un moment, puis recommence.
- * Purement visuel : la simulation ne dépend pas de ses déplacements.
+ * Un employé dans la vue en coupe : il se rend à la machine que la simulation
+ * lui a confiée et y travaille ; au repos, il rejoint la salle du personnel ou
+ * flâne d'une salle à l'autre. Purement visuel : la simulation ne dépend pas de
+ * ses déplacements.
  */
 export class Walker {
   readonly person: Person;
@@ -33,9 +37,12 @@ export class Walker {
   private path: Point[] = [];
   private timer = 0;
   private building: Building;
-  private activeRooms = new Set<number>();
+  private duty: Duty = { kind: 'rest', roomId: null };
+  /** Consigne changée en chemin : il finit son trajet (escalier compris) puis repart. */
+  private redirect = false;
 
   constructor(
+    readonly employeeId: number,
     outfit: Outfit,
     building: Building,
     private readonly rng: Rng,
@@ -44,16 +51,20 @@ export class Walker {
     this.building = building;
     const start = building.rooms.find((r) => r.level === 0)!;
     this.person.view.position.set(colX(start.col) + ROOM.width / 2, floorY(0));
-    this.timer = rng.range(500, 1500);
+    this.timer = rng.range(300, 1200);
   }
 
   setBuilding(building: Building): void {
     this.building = building;
   }
 
-  /** Salles où une machine tourne : l'ouvrier y passe plus de temps. */
-  setActiveRooms(rooms: Set<number>): void {
-    this.activeRooms = rooms;
+  /** Nouvelle consigne : il part aussitôt vers sa machine ou vers le repos. */
+  setDuty(duty: Duty): void {
+    if (duty.kind === this.duty.kind && duty.roomId === this.duty.roomId) return;
+    this.duty = duty;
+    this.timer = 0;
+    if (this.path.length > 0) this.redirect = true;
+    else this.goTo(this.dutyRoom());
   }
 
   update(dtMs: number): void {
@@ -71,8 +82,10 @@ export class Walker {
         view.position.set(target.x, target.y);
         this.path.shift();
         if (this.path.length === 0) {
-          this.person.pose = 'work';
-          this.timer = this.rng.range(5000, 10000);
+          if (this.redirect) {
+            this.redirect = false;
+            this.goTo(this.dutyRoom());
+          } else this.arrive();
         }
       } else {
         view.position.set(view.x + (dx / dist) * step, view.y + (dy / dist) * step);
@@ -81,20 +94,35 @@ export class Walker {
     }
     this.timer -= dtMs;
     if (this.timer > 0) return;
-    if (this.person.pose === 'work') {
-      this.person.pose = 'idle';
-      this.timer = this.rng.range(800, 2000);
-      return;
-    }
-    this.chooseDestination();
+    // À sa machine, il change de geste de temps en temps ; au repos, il flâne.
+    if (this.duty.kind === 'machine' || this.duty.roomId !== null) this.goTo(this.dutyRoom());
+    else this.goTo(this.wanderRoom());
   }
 
-  /** Salles en état de marche en priorité ; sinon, il déblaie les ruines. */
-  private chooseDestination(): void {
+  private arrive(): void {
+    this.person.pose = this.duty.kind === 'machine' ? 'work' : 'idle';
+    this.timer =
+      this.duty.kind === 'machine' ? this.rng.range(6000, 12000) : this.rng.range(3000, 8000);
+  }
+
+  private dutyRoom(): Room | null {
+    const id = this.duty.roomId;
+    return id === null ? this.wanderRoom() : (this.building.rooms.find((r) => r.id === id) ?? null);
+  }
+
+  /** Une salle en état, au hasard (ou une ruine à déblayer s'il n'y a rien d'autre). */
+  private wanderRoom(): Room | null {
     const candidates = this.building.rooms.filter((r) => reachable(this.building, r));
-    const weight = (r: Room) => (this.activeRooms.has(r.id) ? 6 : r.type && !r.ruined ? 3 : 1);
-    const weighted = candidates.flatMap((r) => Array.from({ length: weight(r) }, () => r));
-    const room = this.rng.pick(weighted);
+    if (candidates.length === 0) return null;
+    const usable = candidates.filter((r) => r.type && !r.ruined);
+    return this.rng.pick(usable.length > 0 ? usable : candidates);
+  }
+
+  private goTo(room: Room | null): void {
+    if (!room || !reachable(this.building, room)) {
+      this.timer = 1000;
+      return;
+    }
     const x = colX(room.col) + this.rng.range(70, ROOM.width - 70);
     this.path = this.route(room.level, x);
     if (this.path.length === 0) this.timer = 1000;

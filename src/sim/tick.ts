@@ -43,8 +43,8 @@ export type SimEvent =
   | { type: 'hired'; hour: number; employeeId: number }
   | { type: 'employeeLeft'; hour: number; employeeId: number }
   | { type: 'employeeQuit'; hour: number; name: string; role: StaffRole }
-  | { type: 'levelUp'; hour: number; employeeId: number; level: number }
-  | { type: 'trainingDone'; hour: number; employeeId: number; level: number };
+  | { type: 'levelUp'; hour: number; employeeId: number; name: string; level: number }
+  | { type: 'trainingDone'; hour: number; employeeId: number; name: string; level: number };
 
 /**
  * Avance l'état d'une heure de jeu (modifie `state` en place) et renvoie les

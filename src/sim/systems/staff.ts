@@ -123,7 +123,7 @@ export function runStaff(state: GameState): SimEvent[] {
       e.trainingUntil = null;
       e.level = Math.min(STAFF.maxLevel, e.level + 1);
       e.xp = 0;
-      events.push({ type: 'trainingDone', hour, employeeId: e.id, level: e.level });
+      events.push({ type: 'trainingDone', hour, employeeId: e.id, name: e.name, level: e.level });
     }
     e.morale = Math.min(100, Math.max(0, e.morale + (e.working ? morale.workPerHour : rest)));
     if (e.working && e.level < STAFF.maxLevel) {
@@ -131,7 +131,7 @@ export function runStaff(state: GameState): SimEvent[] {
       if (e.xp >= STAFF.xpHoursPerLevel * e.level) {
         e.level += 1;
         e.xp = 0;
-        events.push({ type: 'levelUp', hour, employeeId: e.id, level: e.level });
+        events.push({ type: 'levelUp', hour, employeeId: e.id, name: e.name, level: e.level });
       }
     }
     e.despairHours = e.morale <= 0 ? e.despairHours + 1 : 0;

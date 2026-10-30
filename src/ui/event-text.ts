@@ -18,6 +18,15 @@ export function describeEvent(event: SimEvent): string | null {
       return t('event.fieldRipe');
     case 'caskMatured':
       return t('event.caskMatured');
+    case 'employeeQuit':
+      return t('event.employeeQuit', {
+        name: event.name,
+        role: t(`staff.role.${event.role}` as MessageKey),
+      });
+    case 'levelUp':
+      return t('event.levelUp', { name: event.name, level: event.level });
+    case 'trainingDone':
+      return t('event.trainingDone', { name: event.name, level: event.level });
     default:
       return null;
   }

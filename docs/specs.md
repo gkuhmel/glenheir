@@ -149,14 +149,19 @@ Le prix final = prix de base × facteur qualité × facteur renommée × facteur
 
 | Rôle | Effet | Salaire mensuel (niv. 1 → 5) |
 | --- | --- | --- |
-| Ouvrier | Fait tourner les machines ; sans ouvrier, une machine est à l'arrêt | £1 800 → £2 600 |
+| Ouvrier | Fait tourner les machines ; sans personne, une machine qui a du travail s'arrête | £1 800 → £2 600 |
 | Distillateur | Réduit la pénalité des coupes, +qualité | £2 500 → £5 000 |
 | Maître de chai | Révèle la qualité des fûts, réduit les pertes, débloque l'assemblage de fûts | £3 000 → £6 500 |
 | Guide | Fait les visites ; sa compétence augmente la satisfaction | £1 600 → £2 400 |
 
-- Compétence 1 à 5, monte avec l'expérience ou une formation (coût + absence quelques jours).
-- Moral simple : baisse si surcharge ou salaire sous le marché ; un employé démotivé produit moins, peut partir.
-- Les employés se déplacent physiquement dans le plan entre les postes.
+- **Machines** : malterie, brasserie, alambics et atelier gin ont besoin de quelqu'un ; les cuves fermentent seules. Chaque heure, le personnel présent est réparti automatiquement sur les machines qui ont du travail, de l'aval vers l'amont (alambics, brasserie, gin, malterie) ; un employé garde sa machine d'une heure à l'autre quand il le peut. Une machine qui a du travail sans personne se met en pause (« Attend un ouvrier ») : avec un seul ouvrier, la chaîne avance pas à pas.
+- **Distillateur** : tient les alambics en priorité (un ouvrier peut le remplacer). Par niveau, il efface 15 % de la pénalité d'une coupe large et ajoute +2 de qualité au new make.
+- **Maître de chai** : révèle la qualité exacte des fûts (fiche et onglet Chai) et réduit la part des anges de 5 % par niveau dans les chais restaurés. Il fait sa ronde au chai de 8 h à 18 h quand il y a des fûts.
+- **Guide** : recrutable avec l'accueil et les visiteurs (étape 8).
+- **Recrutement** : le 1er de chaque mois, 2 candidats par rôle recrutable se présentent (niveau 1 : 50 %, 2 : 35 %, 3 : 15 %), avec un nom écossais. Embaucher coûte 1 mois de salaire ; licencier aussi (indemnité).
+- **Compétence** de 1 à 5 : un niveau de plus après 720 h de travail × niveau actuel (1 mois au niveau 1), ou par une formation (2 mois de salaire, absent 10 jours). Le salaire suit le niveau. Chaque niveau au-delà du 1er fait travailler 5 % plus vite.
+- **Moral** de 0 à 100 (80 à l'embauche) : −0,12 par heure de travail, +0,25 par heure de repos (×2 avec une salle du personnel). Une prime (½ mois de salaire) donne +25. Sous 30, l'employé travaille 20 % moins vite ; à 0 pendant un mois, il démissionne.
+- **Dans les scènes** : chaque employé (tenue selon le rôle) se rend à la machine qui lui est confiée et y travaille ; au repos, il rejoint la salle du personnel ou flâne. On touche un personnage pour ouvrir sa fiche. Sur la carte, ceux qui sont au repos vont prendre l'air jusqu'aux champs (en contournant la distillerie) et le maître de chai en ronde va au chai.
 
 ### Visiteurs
 

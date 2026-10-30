@@ -33,9 +33,6 @@ export class MachineActivity {
     this.container.addChild(this.particles.container, this.badges);
   }
 
-  /** Salles où une machine travaille (les ouvriers y vont plus volontiers). */
-  activeRooms = new Set<number>();
-
   setState(state: GameState): void {
     const statuses = state.machines.map((m) => [m.roomId, machineStatus(state, m)] as const);
     const signature = JSON.stringify([statuses, state.building.rooms]);
@@ -46,7 +43,6 @@ export class MachineActivity {
     this.glows.length = 0;
     this.badges.removeChildren().forEach((c) => c.destroy({ children: true }));
     const emitters: Emitter[] = [];
-    this.activeRooms = new Set();
 
     for (const machine of state.machines) {
       const room = state.building.rooms.find((r) => r.id === machine.roomId);
@@ -55,7 +51,6 @@ export class MachineActivity {
       const x0 = colX(room.col);
       const y0 = levelTop(room.level);
       this.badge(status.text, status.running, x0 + W - 12, y0 + 52);
-      if (status.running) this.activeRooms.add(room.id);
       // Faîte du toit de la colonne (pour la fumée de la pagode et de la cheminée).
       const topLevel = Math.max(
         ...state.building.rooms

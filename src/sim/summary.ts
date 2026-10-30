@@ -22,6 +22,9 @@ const NOTABLE: ReadonlySet<SimEvent['type']> = new Set([
   'bankrupt',
   'fieldRipe',
   'caskMatured',
+  'employeeQuit',
+  'levelUp',
+  'trainingDone',
 ]);
 
 const round = (value: number) => Math.round(value * 10) / 10;

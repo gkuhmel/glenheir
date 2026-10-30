@@ -19,6 +19,7 @@ import { ProductionPanels } from './ui/production-panels';
 import { showTerroirChoice } from './ui/terroir';
 import { showToast } from './ui/toast';
 import { WarehousePanels } from './ui/warehouse-panels';
+import { StaffPanels } from './ui/staff-panels';
 
 /** Empêche Safari iOS de zoomer la page entière (il ignore user-scalable=no). */
 function blockPageZoom(): void {
@@ -80,6 +81,7 @@ async function main(): Promise<void> {
   let interiorScene: InteriorScene | null = null;
   let warehouseScene: WarehouseScene | null = null;
   const cellar = new WarehousePanels(game, { enter: (id) => enterWarehouse(id) });
+  const team = new StaffPanels(game);
   const ui = mountUi(uiRoot, game, {
     menuContent: () =>
       menuPanel(game, {
@@ -99,6 +101,7 @@ async function main(): Promise<void> {
       if (tab === 'production') return production.overview();
       if (tab === 'warehouse') return cellar.overview();
       if (tab === 'market') return production.market();
+      if (tab === 'staff') return team.overview();
       return null;
     },
   });
@@ -106,8 +109,12 @@ async function main(): Promise<void> {
 
   const stage = await Stage.create(mapRoot, () => ui.insets());
   const interior = new InteriorScene(stage.invalidate, {
-    select: (selection) =>
-      selection ? ui.showPanel(() => panel.forSelection(selection)) : ui.closePanel(),
+    select: (selection) => {
+      if (!selection) ui.closePanel();
+      else if (selection.kind === 'employee')
+        ui.showPanel(() => team.forEmployee(selection.employeeId));
+      else ui.showPanel(() => panel.forSelection(selection));
+    },
   });
   interiorScene = interior;
   const warehouse = new WarehouseScene(stage.invalidate, {
@@ -116,6 +123,8 @@ async function main(): Promise<void> {
       else if (selection.kind === 'place')
         ui.showPanel(() => cellar.forPlace(warehouseId, selection.place));
       else if (selection.kind === 'ruin') ui.showPanel(() => cellar.forRuin(warehouseId));
+      else if (selection.kind === 'employee')
+        ui.showPanel(() => team.forEmployee(selection.employeeId));
       else ui.showPanel(() => cellar.forExtension(warehouseId));
     },
   });

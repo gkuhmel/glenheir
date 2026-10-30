@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Text } from 'pixi.js';
 import { BUILDING } from '../../data/balance';
 import { createRng } from '../../sim/rng';
 import type { GameState } from '../../sim/state';
@@ -24,7 +24,9 @@ import { drawShell, drawSlots } from './shell';
 import { MachineActivity } from './activity';
 
 export type InteriorSelection =
-  { kind: 'room'; roomId: number } | { kind: 'slot'; col: number; level: number };
+  | { kind: 'room'; roomId: number }
+  | { kind: 'slot'; col: number; level: number }
+  | { kind: 'employee'; employeeId: number };
 
 export interface InteriorHandlers {
   select(selection: InteriorSelection | null): void;
@@ -64,6 +66,19 @@ export class InteriorScene implements Scene {
   private readonly motes: { g: Graphics; x: number; y: number; phase: number }[] = [];
   private readonly rng = createRng(777);
   private walkers: Walker[] = [];
+  private names = new Map<number, string>();
+  private readonly employeeMarker = new Container();
+  private readonly nameLabel = new Text({
+    text: '',
+    style: {
+      fontFamily: 'Alegreya Sans',
+      fontWeight: '700',
+      fontSize: 15,
+      fill: 0xfff4d8,
+      stroke: { color: 0x2b2018, width: 4 },
+    },
+    resolution: 2,
+  });
   private camera: Camera = { x: 0, y: 0, zoom: 0.8 };
   private view: Size = { width: 1, height: 1 };
   private insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -78,6 +93,11 @@ export class InteriorScene implements Scene {
     private readonly handlers: InteriorHandlers,
   ) {
     this.selectionBox.visible = false;
+    const ring = new Graphics().ellipse(0, 0, 24, 7).stroke({ width: 3, color: P.brassLight });
+    this.nameLabel.anchor.set(0.5, 1);
+    this.nameLabel.position.set(0, -108);
+    this.employeeMarker.addChild(ring, this.nameLabel);
+    this.employeeMarker.visible = false;
     this.world.addChild(
       this.backdrop,
       this.rooms,
@@ -87,6 +107,7 @@ export class InteriorScene implements Scene {
       this.slots,
       this.effects,
       this.selectionBox,
+      this.employeeMarker,
     );
     this.slots.visible = false;
     this.backdrop.cacheAsTexture({ resolution: 1 });
@@ -107,7 +128,6 @@ export class InteriorScene implements Scene {
     }
     this.syncWalkers(state);
     this.activity.setState(state);
-    for (const walker of this.walkers) walker.setActiveRooms(this.activity.activeRooms);
   }
 
   /** Mode « Agrandir » : montre les emplacements achetables et permet de les toucher. */
@@ -129,6 +149,7 @@ export class InteriorScene implements Scene {
   clearSelection(): void {
     this.selection = null;
     this.selectionBox.visible = false;
+    this.employeeMarker.visible = false;
     this.invalidate();
   }
 
@@ -154,6 +175,17 @@ export class InteriorScene implements Scene {
   tap(sx: number, sy: number): void {
     if (!this.building) return;
     const p = screenToWorld(this.camera, sx, sy);
+    // Les personnages passent devant les salles : on les touche en premier.
+    const walker = this.walkerAt(p.x, p.y);
+    if (walker) {
+      this.selection = { kind: 'employee', employeeId: walker.employeeId };
+      this.selectionBox.visible = false;
+      const v = walker.person.view;
+      this.focusPoint(v.x, v.y - 50);
+      this.handlers.select(this.selection);
+      this.invalidate();
+      return;
+    }
     const col = Math.floor((p.x - MARGIN) / ROOM.width);
     const level = BUILDING.maxLevel - Math.floor((p.y - SKY) / ROOM.height);
     const room = roomAt(this.building, col, level);
@@ -180,6 +212,7 @@ export class InteriorScene implements Scene {
       if (t >= 1) this.focus = null;
     }
     for (const walker of this.walkers) walker.update(dtMs);
+    this.followSelected();
     this.activity.update(dtMs);
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i]!;
@@ -227,9 +260,11 @@ export class InteriorScene implements Scene {
 
   /** Fait glisser la caméra pour que la case reste visible au-dessus du tiroir. */
   private focusCell(col: number, level: number): void {
+    this.focusPoint(colX(col) + ROOM.width / 2, levelTop(level) + ROOM.height / 2);
+  }
+
+  private focusPoint(cx: number, cy: number): void {
     const { zoom } = this.camera;
-    const cx = colX(col) + ROOM.width / 2;
-    const cy = levelTop(level) + ROOM.height / 2;
     const screenY = (this.insets.top + this.view.height * ABOVE_DRAWER) / 2;
     const target = clampCamera(
       { zoom, x: cx - this.view.width / 2 / zoom, y: cy - screenY / zoom },
@@ -359,20 +394,62 @@ export class InteriorScene implements Scene {
     }
   }
 
-  /** Un personnage par ouvrier de la simulation. */
+  /**
+   * Un personnage par employé présent, habillé selon son rôle, envoyé à la
+   * machine que la simulation lui a confiée (ou au repos). Le maître de chai au
+   * travail est au chai, pas ici ; un employé en formation est absent.
+   */
   private syncWalkers(state: GameState): void {
-    const workers = state.staff.filter((e) => e.role === 'worker');
-    while (this.walkers.length < workers.length) {
-      const walker = new Walker(
-        OUTFITS.worker,
-        state.building,
-        createRng(1000 + this.walkers.length),
+    const staffRoom =
+      state.building.rooms.find((r) => r.type === 'staffRoom' && !r.ruined)?.id ?? null;
+    const here = state.staff.filter(
+      (e) => e.trainingUntil === null && !(e.role === 'cellarMaster' && e.working),
+    );
+    const ids = new Set(here.map((e) => e.id));
+    this.walkers = this.walkers.filter((walker) => {
+      if (ids.has(walker.employeeId)) return true;
+      walker.person.view.destroy({ children: true });
+      return false;
+    });
+    for (const employee of here) {
+      let walker = this.walkers.find((w) => w.employeeId === employee.id);
+      if (!walker) {
+        walker = new Walker(
+          employee.id,
+          OUTFITS[employee.role],
+          state.building,
+          createRng(1000 + employee.id),
+        );
+        this.walkers.push(walker);
+        this.people.addChild(walker.person.view);
+      }
+      walker.setDuty(
+        employee.roomId !== null
+          ? { kind: 'machine', roomId: employee.roomId }
+          : { kind: 'rest', roomId: staffRoom },
       );
-      this.walkers.push(walker);
-      this.people.addChild(walker.person.view);
     }
-    while (this.walkers.length > workers.length) {
-      this.walkers.pop()!.person.view.destroy({ children: true });
+    this.names = new Map(state.staff.map((e) => [e.id, e.name]));
+  }
+
+  /** Employé sous le doigt (silhouette d'environ 40 × 100 px). */
+  private walkerAt(x: number, y: number): Walker | null {
+    for (const walker of this.walkers) {
+      const v = walker.person.view;
+      if (Math.abs(x - v.x) < 22 && y < v.y + 6 && y > v.y - 104) return walker;
     }
+    return null;
+  }
+
+  /** Anneau de laiton aux pieds de l'employé choisi et son nom au-dessus de lui. */
+  private followSelected(): void {
+    const id = this.selection?.kind === 'employee' ? this.selection.employeeId : null;
+    const walker = id === null ? null : this.walkers.find((w) => w.employeeId === id);
+    this.employeeMarker.visible = walker !== undefined && walker !== null;
+    if (!walker) return;
+    const v = walker.person.view;
+    this.employeeMarker.position.set(v.x, v.y);
+    const name = this.names.get(walker.employeeId) ?? '';
+    if (this.nameLabel.text !== name) this.nameLabel.text = name;
   }
 }

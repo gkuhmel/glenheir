@@ -25,6 +25,7 @@ import {
   warehouseFootprint,
 } from './buildings';
 import { drawField, fieldLook } from './fields';
+import { MapPeople } from './people';
 import { createGrid } from './grid';
 import { createGround } from './ground';
 import { createScenery } from './scenery';
@@ -53,6 +54,7 @@ export class MapScene implements Scene {
   private readonly buildings = new Container();
   private readonly fields = new Container();
   private readonly particles = new Particles(createRng(31));
+  private readonly people = new MapPeople(createRng(77));
   private emitters: Emitter[] = [];
   private fieldLooks: string[] = [];
   private readonly highlight = new Graphics();
@@ -76,6 +78,7 @@ export class MapScene implements Scene {
       createScenery(this.terrain),
       this.fields,
       this.buildings,
+      this.people.container,
       this.particles.container,
       grid,
       this.highlight,
@@ -88,6 +91,7 @@ export class MapScene implements Scene {
     this.state = state;
     this.updateFields(state);
     this.updateSmoke(state);
+    this.updatePeople(state);
     const signature = JSON.stringify([state.building.rooms, state.warehouses]);
     if (signature === this.signature) return;
     this.signature = signature;
@@ -156,7 +160,24 @@ export class MapScene implements Scene {
   update(dtMs: number): boolean {
     runEmitters(this.emitters, this.particles, dtMs);
     this.particles.update(dtMs);
-    return this.particles.active;
+    this.people.update(dtMs);
+    return this.particles.active || this.people.active;
+  }
+
+  /** Le personnel dehors : porte de la distillerie, champs, porte du chai. */
+  private updatePeople(state: GameState): void {
+    const house = distilleryBounds(state.building);
+    const warehouse = state.warehouses[0];
+    const store = warehouse
+      ? warehouseFootprint(warehouse, this.terrain.warehouse)
+      : this.terrain.warehouse;
+    this.people.setSpots(
+      { x: house.x + house.width / 2, y: house.y + house.height + 8 },
+      house,
+      MAP.fields.map((_, i) => fieldRect(i)),
+      { x: (store.x + store.width / 2) * T, y: (store.y + store.height) * T + 4 },
+    );
+    this.people.setState(state);
   }
 
   private updateFields(state: GameState): void {

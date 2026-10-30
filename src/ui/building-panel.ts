@@ -53,7 +53,7 @@ export class BuildingPanel {
     );
   }
 
-  forSelection(selection: InteriorSelection): PanelContent | null {
+  forSelection(selection: Exclude<InteriorSelection, { kind: 'employee' }>): PanelContent | null {
     return selection.kind === 'room'
       ? this.forRoom(selection.roomId)
       : this.forSlot(selection.col, selection.level);

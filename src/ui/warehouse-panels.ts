@@ -17,6 +17,7 @@ import {
 import { HOURS_PER_YEAR, toGameDate } from '../sim/time';
 import type { PanelContent } from './building-panel';
 import { profileBars } from './production-panels';
+import { cellarMaster } from '../sim/systems/staff';
 import { showToast } from './toast';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') => {
@@ -179,13 +180,21 @@ export class WarehousePanels {
         }),
       ),
     );
-    const estimate = qualityEstimate(cask);
-    const profile = this.section(
-      t('cask.profile'),
-      profileBars(caskProfile(cask), { quality: false }),
-      el('p', 'panel-status', t('cask.quality', estimate)),
-      el('p', 'panel-desc', t('cask.qualityHint')),
-    );
+    // Le maître de chai connaît la qualité exacte ; sans lui, une fourchette ±15.
+    const known = cellarMaster(this.game.state) !== null;
+    const current = caskProfile(cask);
+    const profile = known
+      ? this.section(
+          t('cask.profile'),
+          profileBars(current),
+          el('p', 'panel-status', t('cask.qualityExact', { quality: Math.round(current.quality) })),
+        )
+      : this.section(
+          t('cask.profile'),
+          profileBars(current, { quality: false }),
+          el('p', 'panel-status', t('cask.quality', qualityEstimate(cask))),
+          el('p', 'panel-desc', t('cask.qualityHint')),
+        );
     body.append(profile, this.brokerSection(cask));
     return { title: t('cask.title', { id: cask.id }), body };
   }
@@ -308,13 +317,15 @@ export class WarehousePanels {
       }
       if (casks.length === 0) section.append(el('p', 'panel-desc', t('chai.empty')));
       for (const cask of casks) {
-        const estimate = qualityEstimate(cask);
+        const known = cellarMaster(state) !== null;
         const line = this.line(
           t('chai.caskLine', {
             type: t(`cask.type.${cask.type}` as MessageKey),
             age: formatAge(ageYears(cask, state.time.hour)),
           }),
-          t('chai.caskQuality', estimate),
+          known
+            ? t('chai.caskQualityExact', { quality: Math.round(caskProfile(cask).quality) })
+            : t('chai.caskQuality', qualityEstimate(cask)),
         );
         if (ageYears(cask, state.time.hour) >= CASKS.legalAgeYears) line.classList.add('is-legal');
         section.append(line);
