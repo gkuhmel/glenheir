@@ -132,6 +132,7 @@ export const ROOM_COSTS = {
   stillHouse: 12_000,
   reception: 20_000,
   ginWorkshop: 7_000,
+  bottling: 6_000,
   tasting: 5_000,
   shop: 6_000,
   cafe: 6_000,
@@ -219,6 +220,28 @@ export const INHERITED_CASKS = [
   { type: 'sherry', years: 18, place: 6, hint: 3 },
 ] as const;
 
+/** Mise en bouteille : salle d'embouteillage, prix du whisky selon l'âge et la qualité. */
+export const BOTTLING = {
+  bottlesPerDay: 500,
+  costPerBottle: 3,
+  /** Une bouteille de 70 cl à 40 %. */
+  lpaPerBottle: 0.28,
+  minAgeYears: 3,
+  /** Prix de base selon l'âge (interpolé entre les paliers, plafonné au dernier). */
+  agePrices: [
+    { years: 3, price: 35 },
+    { years: 8, price: 55 },
+    { years: 12, price: 80 },
+    { years: 18, price: 180 },
+  ],
+  /** Facteur qualité : 0,6 + qualité × 0,8 / 100 (qualité 50 → ×1). */
+  quality: { base: 0.6, perPoint: 0.008 },
+  /** Facteur renommée : 1 + renommée / 200 (×1,5 au maximum). */
+  renownDivisor: 200,
+  /** Renommée gagnée par bouteille de whisky vendue : (qualité − 55) × 0,002, export moitié. */
+  renown: { minQuality: 60, pivot: 55, perPoint: 0.002, exportShare: 0.5, max: 100 },
+} as const;
+
 /** Gin, produit dans l'atelier gin à partir du new make pendant que le whisky vieillit. */
 export const GIN = {
   batchBottles: 200,
@@ -291,8 +314,18 @@ export const MARKET = {
   barleySeason: { spring: 1.1, summer: 1.15, autumn: 0.88, winter: 1 },
   /** New make vendu en vrac aux assembleurs : prix fixe, non taxé, volume illimité. */
   newMakePricePerLpa: 4,
-  /** Cavistes britanniques : volume plafonné chaque mois (bouteilles). */
-  retailMonthlyBottles: 300,
+  /**
+   * Demande par canal : chaque bouteille vendue remplit une jauge de saturation ;
+   * le prix d'une bouteille baisse de 50 % quand la jauge atteint sa capacité
+   * (jamais plus bas), et la jauge se vide de 3 % par jour.
+   */
+  demand: {
+    capacity: { ginRetail: 600, whiskyRetail: 600, whiskyExport: 2_000 },
+    maxDiscount: 0.5,
+    dailyRecovery: 0.03,
+  },
+  /** L'export paie 70 % du prix, sans accise, à partir de 30 de renommée. */
+  export: { priceFactor: 0.7, minRenown: 30 },
   /** Une distillerie voisine achète le malt à prix fixe, sans limite. */
   maltPricePerTonne: 500,
   /**
@@ -377,4 +410,6 @@ export const SAVE = {
 export const DEBUG = {
   speeds: [1, 10, 100],
   cashGift: 10_000,
+  /** Coup de pouce de renommée (pour ouvrir l'export en test). */
+  renownGift: 10,
 } as const;

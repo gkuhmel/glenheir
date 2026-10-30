@@ -6,6 +6,7 @@ import type { GameState, StaffRole } from '../state';
 import type { SimEvent } from '../tick';
 import { TIME } from '../../data/balance';
 import { roomGroups, type Building, type Room } from './building';
+import type { Bottling } from './bottling';
 
 export type PeatLevel = keyof typeof PRODUCTION.malting.peat;
 export type Cut = keyof typeof PRODUCTION.distillation.cuts;
@@ -64,8 +65,22 @@ export interface GinMachine {
   batch: Batch | null;
 }
 
+/** Chaîne d'embouteillage : un lot à la fois, lancé depuis la fiche d'un fût. */
+export interface BottlingMachine {
+  kind: 'bottling';
+  roomId: number;
+  batch: Batch | null;
+  /** La mise en bouteille en cours, qui rejoint le stock une fois finie. */
+  run: Bottling | null;
+}
+
 export type Machine =
-  MaltingMachine | MashingMachine | FermentationMachine | StillMachine | GinMachine;
+  | MaltingMachine
+  | MashingMachine
+  | FermentationMachine
+  | StillMachine
+  | GinMachine
+  | BottlingMachine;
 
 const HOURS_PER_DAY = TIME.hoursPerDay;
 
@@ -95,6 +110,8 @@ export function createMachine(room: Room, startingStills: boolean): Machine | nu
       };
     case 'ginWorkshop':
       return { kind: 'gin', roomId: room.id, orders: 0, batch: null };
+    case 'bottling':
+      return { kind: 'bottling', roomId: room.id, batch: null, run: null };
     default:
       return null;
   }
@@ -334,6 +351,28 @@ function runGin(
   events.push({ type: 'batchStarted', hour, roomId: machine.roomId });
 }
 
+/** La chaîne remplit, bouche et étiquette ; le lot fini rejoint le stock de bouteilles. */
+function runBottling(
+  state: GameState,
+  machine: BottlingMachine,
+  efficiency: number,
+  events: SimEvent[],
+): void {
+  if (!machine.batch || !machine.run) return;
+  machine.batch.elapsed += efficiency;
+  if (!isDone(machine.batch)) return;
+  const bottling = { ...machine.run, bottledHour: state.time.hour };
+  state.bottlings.push(bottling);
+  machine.batch = null;
+  machine.run = null;
+  events.push({
+    type: 'bottled',
+    hour: state.time.hour,
+    bottlingId: bottling.id,
+    bottles: bottling.bottled,
+  });
+}
+
 /**
  * La machine a-t-elle du travail cette heure ? Un lot en cours, ou de quoi en
  * lancer un. Le moût qui attend une cuve libre et les cuves qui fermentent n'ont
@@ -358,6 +397,8 @@ export function needsOperator(state: GameState, machine: Machine): boolean {
         hasOrders(machine.orders) &&
         readyVessel(state, workingRooms(state.building)) !== null
       );
+    case 'bottling':
+      return machine.batch !== null;
     case 'gin':
       if (machine.batch) return true;
       return (
@@ -387,7 +428,14 @@ export function runProduction(
 ): SimEvent[] {
   const events: SimEvent[] = [];
   const active = workingRooms(state.building);
-  const order: Machine['kind'][] = ['gin', 'distillation', 'fermentation', 'mashing', 'malting'];
+  const order: Machine['kind'][] = [
+    'bottling',
+    'gin',
+    'distillation',
+    'fermentation',
+    'mashing',
+    'malting',
+  ];
   for (const kind of order) {
     for (const machine of state.machines) {
       if (machine.kind !== kind) continue;
@@ -411,6 +459,9 @@ export function runProduction(
           break;
         case 'gin':
           runGin(state, machine, efficiency, events);
+          break;
+        case 'bottling':
+          runBottling(state, machine, efficiency, events);
           break;
       }
     }

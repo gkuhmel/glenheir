@@ -5,6 +5,7 @@ import { machineStatus } from '../../ui/machine-status';
 import { Particles, runEmitters, STYLES, type Emitter } from '../particles';
 import { createRng } from '../../sim/rng';
 import { colX, levelTop, ROOM } from './layout';
+import { BOTTLING_BELT } from './rooms';
 import { INTERIOR as P } from './palette';
 
 const W = ROOM.width;
@@ -25,6 +26,13 @@ export class MachineActivity {
   readonly container = new Container();
   private readonly particles = new Particles(createRng(55));
   private readonly glows: Glow[] = [];
+  private readonly belts: {
+    container: Container;
+    bottles: Container[];
+    x0: number;
+    y: number;
+    offset: number;
+  }[] = [];
   private readonly badges = new Container();
   private emitters: Emitter[] = [];
   private signature = '';
@@ -41,6 +49,8 @@ export class MachineActivity {
 
     for (const glow of this.glows) glow.g.destroy();
     this.glows.length = 0;
+    for (const b of this.belts) b.container.destroy({ children: true });
+    this.belts.length = 0;
     this.badges.removeChildren().forEach((c) => c.destroy({ children: true }));
     const emitters: Emitter[] = [];
 
@@ -65,7 +75,45 @@ export class MachineActivity {
     this.emitters = emitters.map((e) => previous.get(key(e)) ?? e);
   }
 
+  /** Bouteilles qui avancent sur le tapis : vides, remplies, puis étiquetées. */
+  private belt(x0: number, floor: number): void {
+    const bottles: Container[] = [];
+    const container = new Container();
+    for (let i = 0; i < 8; i++) {
+      const bottle = new Container();
+      const glass = new Graphics()
+        .roundRect(-4, -22, 8, 22, 2)
+        .fill({ color: 0x8fb39a, alpha: 0.7 })
+        .rect(-1.5, -29, 3, 8)
+        .fill({ color: 0x8fb39a, alpha: 0.7 });
+      const whisky = new Graphics().roundRect(-3, -16, 6, 15, 1.5).fill(P.bottle[0]!);
+      const label = new Graphics()
+        .rect(-4, -14, 8, 7)
+        .fill(P.parchment)
+        .rect(-4, -12, 8, 1.5)
+        .fill(P.brass)
+        .rect(-1.5, -31, 3, 3)
+        .fill(0x7a2b2b);
+      bottle.addChild(glass, whisky, label);
+      container.addChild(bottle);
+      bottles.push(bottle);
+    }
+    this.container.addChildAt(container, 0);
+    this.belts.push({ container, bottles, x0, y: floor - BOTTLING_BELT.y, offset: 0 });
+  }
+
   update(dtMs: number): void {
+    const span = BOTTLING_BELT.to - BOTTLING_BELT.from;
+    for (const b of this.belts) {
+      b.offset = (b.offset + (36 * dtMs) / 1000) % span;
+      b.bottles.forEach((bottle, i) => {
+        const x = BOTTLING_BELT.from + ((b.offset + (i * span) / b.bottles.length) % span);
+        bottle.position.set(b.x0 + x, b.y);
+        // Remplie après la remplisseuse, étiquetée après l'étiqueteuse.
+        bottle.children[1]!.visible = x > 80;
+        bottle.children[2]!.visible = x > 180;
+      });
+    }
     runEmitters(this.emitters, this.particles, dtMs);
     this.particles.update(dtMs);
     for (const glow of this.glows) {
@@ -168,6 +216,10 @@ export class MachineActivity {
           everyMs: 260,
           timer: 0,
         });
+        return;
+      case 'bottling':
+        if (!running) return;
+        this.belt(x0, floor);
         return;
       case 'gin':
         if (!running) return;

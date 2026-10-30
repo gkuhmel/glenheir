@@ -308,6 +308,23 @@ function facadeFeature(g: Graphics, room: Room, x: number, y: number, w: number,
       }
       return;
     }
+    case 'bottling':
+      // Quai de chargement : porte à lattes et palette de caisses de bouteilles.
+      g.rect(cx - 11, y + h - 18, 22, 18)
+        .fill(ruined ? C.hole : 0x6d7378)
+        .stroke({ width: 1, color: C.stoneDark });
+      for (let i = 1; i < 5; i++)
+        g.rect(cx - 11, y + h - 18 + i * 3.6, 22, 0.8).fill({ color: 0x000000, alpha: 0.25 });
+      if (!ruined)
+        for (const [dx, dy] of [
+          [14, 4],
+          [20, 4],
+          [17, -1],
+        ] as const)
+          g.rect(cx + dx, y + h + dy, 6, 5)
+            .fill(C.wood)
+            .stroke({ width: 0.6, color: C.stoneDark });
+      return;
     case 'cafe':
       for (let i = 0; i < 6; i++)
         g.rect(x + 3 + (i * (w - 6)) / 6, y + h - 22, (w - 6) / 6, 7).fill(C.awning[i % 2]!);

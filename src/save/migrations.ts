@@ -4,6 +4,7 @@ import { createStartingBuilding, createStartingWarehouse } from '../sim/systems/
 import { createStartingFields } from '../sim/systems/fields';
 import { syncMachines } from '../sim/systems/production';
 import { createInheritedCasks } from '../sim/systems/warehouse';
+import { emptySaturation } from '../sim/systems/market';
 import { newEmployee, refreshCandidates } from '../sim/systems/staff';
 import { createRng } from '../sim/rng';
 import { STARTING_STAFF } from '../data/balance';
@@ -15,7 +16,7 @@ const FALLBACK_NAME = 'Dougal Grant';
 export type Migration = (state: unknown) => unknown;
 
 /** Version actuelle du format de sauvegarde. */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /**
  * Migrations indexées par version de départ : `migrations[1]` transforme un
@@ -96,6 +97,15 @@ export const migrations: Record<number, Migration> = {
     refreshCandidates(next, rng);
     next.rngState = rng.state;
     return next;
+  },
+  // v7 → v8 (étape 7) : jauges de demande par canal, mises en bouteille en stock.
+  7: (state) => {
+    const old = state as GameState;
+    return {
+      ...old,
+      market: { saturation: emptySaturation(), casksSoldThisMonth: old.market.casksSoldThisMonth },
+      bottlings: [],
+    };
   },
 };
 

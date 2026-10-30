@@ -5,6 +5,8 @@ import { createStartingFields, type Field } from './systems/fields';
 import { syncMachines, type Machine } from './systems/production';
 import { createInheritedCasks, type Cask } from './systems/warehouse';
 import { newEmployee, refreshCandidates } from './systems/staff';
+import { emptySaturation, type DemandKey } from './systems/market';
+import type { Bottling } from './systems/bottling';
 import { createRng } from './rng';
 import {
   createStartingBuilding,
@@ -28,7 +30,8 @@ export interface Stocks {
 
 /** Ventes du mois en cours aux cavistes (volume plafonné). */
 export interface MarketState {
-  retailBottlesThisMonth: number;
+  /** Saturation de la demande par canal (en bouteilles vendues récemment). */
+  saturation: Record<DemandKey, number>;
   /** Fûts vendus au courtier ce mois-ci. */
   casksSoldThisMonth: number;
 }
@@ -109,6 +112,8 @@ export interface GameState {
   /** Fûts en vieillissement dans les chais. */
   casks: Cask[];
   market: MarketState;
+  /** Mises en bouteille en stock (bouteilles prêtes à vendre). */
+  bottlings: Bottling[];
   journal: Journal;
   /** Prochain identifiant libre (employés, prêts…). */
   nextId: number;
@@ -137,7 +142,8 @@ export function createInitialState(seed: number): GameState {
     fields,
     stocks: { barley: emptyLot(), malt: emptyLot(), newMake: emptyLot(), gin: 0 },
     casks: [],
-    market: { retailBottlesThisMonth: 0, casksSoldThisMonth: 0 },
+    market: { saturation: emptySaturation(), casksSoldThisMonth: 0 },
+    bottlings: [],
     journal: { entries: [], monthly: [] },
     nextId,
   };

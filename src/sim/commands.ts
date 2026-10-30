@@ -1,4 +1,5 @@
 import {
+  BOTTLING,
   CASKS,
   DEBUG,
   FINANCE,
@@ -16,13 +17,23 @@ import { createRng } from './rng';
 import type { GameState, Terroir } from './state';
 import { canSowAt, harvest, isRipe, seedCost, sow, type BarleyVariety } from './systems/fields';
 import { exciseFor } from './systems/finance';
-import { barleyPrice, newMakeValue } from './systems/market';
+import { barleyPrice, newMakeValue, saleGross } from './systems/market';
+import {
+  demandKeyOf,
+  prepareBottling,
+  renownGain,
+  whiskyUnitPrice,
+  type WhiskyChannel,
+} from './systems/bottling';
+import type { BottlingMachine } from './systems/production';
+import { cellarMaster } from './systems/staff';
 import {
   ageAllCasks,
   ageYears,
   caskCapacityLpa,
   caskValue,
   extensionsOf,
+  type Cask,
   type CaskType,
 } from './systems/warehouse';
 import { HOURS_PER_YEAR } from './time';
@@ -63,6 +74,9 @@ export type Command =
   | { type: 'sellCask'; caskId: number }
   | { type: 'sellMalt'; tonnes: number }
   | { type: 'hire'; candidateId: number }
+  | { type: 'bottle'; caskIds: number[] }
+  | { type: 'sellWhisky'; bottlingId: number; channel: WhiskyChannel; bottles: number }
+  | { type: 'debugAddRenown' }
   | { type: 'fire'; employeeId: number }
   | { type: 'train'; employeeId: number }
   | { type: 'giveBonus'; employeeId: number }
@@ -97,14 +111,19 @@ export type CommandError =
   | 'placeTaken'
   | 'placeInvalid'
   | 'warehouseFull'
-  | 'retailCapReached'
   | 'caskNotFound'
   | 'caskTooYoung'
   | 'brokerCapReached'
   | 'candidateNotFound'
   | 'employeeNotFound'
   | 'maxLevel'
-  | 'inTraining';
+  | 'inTraining'
+  | 'noBottlingRoom'
+  | 'inheritedCask'
+  | 'bottlingBusy'
+  | 'needCellarMaster'
+  | 'bottlingNotFound'
+  | 'renownTooLow';
 
 export type CommandResult = { ok: true; events: SimEvent[] } | { ok: false; error: CommandError };
 
@@ -403,19 +422,102 @@ function sellMalt(state: GameState, tonnes: number): CommandResult {
   return ok(state, [{ type: 'traded', hour: state.time.hour }]);
 }
 
-/** Gin vendu aux cavistes britanniques : prix plein, accise due, volume plafonné par mois. */
+/** Gin vendu aux cavistes britanniques : accise due, prix en baisse si on inonde le marché. */
 function sellGin(state: GameState, bottles: number): CommandResult {
   if (!Number.isInteger(bottles) || bottles <= 0) return fail('amountInvalid');
   if (bottles > state.stocks.gin) return fail('notEnoughStock');
-  if (state.market.retailBottlesThisMonth + bottles > MARKET.retailMonthlyBottles)
-    return fail('retailCapReached');
+  const gross = saleGross(state.market.saturation, 'ginRetail', GIN.price, bottles);
   state.stocks.gin -= bottles;
-  state.market.retailBottlesThisMonth += bottles;
-  recordTransaction(state, bottles * GIN.price, 'sales', { product: 'gin', channel: 'retail' });
+  state.market.saturation.ginRetail += bottles;
+  recordTransaction(state, gross, 'sales', { product: 'gin', channel: 'retail' });
   recordTransaction(state, -exciseFor('retail', bottles), 'excise', {
     product: 'gin',
     channel: 'retail',
   });
+  return ok(state, [{ type: 'traded', hour: state.time.hour }]);
+}
+
+/**
+ * Mise en bouteille d'un fût, ou d'un assemblage de fûts (maître de chai requis).
+ * Les fûts quittent le chai ; la chaîne d'embouteillage les traite ensuite.
+ */
+function bottle(state: GameState, caskIds: readonly number[]): CommandResult {
+  if (caskIds.length === 0 || new Set(caskIds).size !== caskIds.length)
+    return fail('amountInvalid');
+  const machine = state.machines.find(
+    (m): m is BottlingMachine =>
+      m.kind === 'bottling' && !state.building.rooms.find((r) => r.id === m.roomId)?.ruined,
+  );
+  if (!machine) return fail('noBottlingRoom');
+  if (machine.run) return fail('bottlingBusy');
+  const casks: Cask[] = [];
+  for (const id of caskIds) {
+    const cask = state.casks.find((c) => c.id === id);
+    if (!cask) return fail('caskNotFound');
+    if (ageYears(cask, state.time.hour) < BOTTLING.minAgeYears) return fail('caskTooYoung');
+    // Le grand-oncle avait promis ses fûts au courtier : on ne peut que les lui vendre.
+    if (cask.inherited) return fail('inheritedCask');
+    casks.push(cask);
+  }
+  if (casks.length > 1 && !cellarMaster(state)) return fail('needCellarMaster');
+  const prepared = prepareBottling(state, casks);
+  if (prepared.bottled <= 0) return fail('notEnoughStock');
+  if (!invest(state, prepared.bottled * BOTTLING.costPerBottle, 'materials'))
+    return fail('notEnoughCash');
+  const rng = createRng(state.rngState);
+  const noteSeed = rng.int(1, 1_000_000);
+  state.rngState = rng.state;
+  state.casks = state.casks.filter((c) => !caskIds.includes(c.id));
+  machine.run = { ...prepared, id: state.nextId++, bottledHour: state.time.hour, noteSeed };
+  machine.batch = {
+    amount: prepared.bottled,
+    profile: prepared.profile,
+    elapsed: 0,
+    duration: Math.ceil((prepared.bottled / BOTTLING.bottlesPerDay) * TIME.hoursPerDay),
+  };
+  return ok(state, [
+    {
+      type: 'bottlingStarted',
+      hour: state.time.hour,
+      roomId: machine.roomId,
+      bottles: prepared.bottled,
+    },
+  ]);
+}
+
+/**
+ * Whisky vendu aux cavistes (accise due) ou à l'export (70 % du prix, sans accise,
+ * renommée 30 requise). Le prix baisse à mesure qu'on sature le canal ; un bon
+ * whisky fait monter la renommée.
+ */
+function sellWhisky(
+  state: GameState,
+  bottlingId: number,
+  channel: WhiskyChannel,
+  bottles: number,
+): CommandResult {
+  if (!Number.isInteger(bottles) || bottles <= 0) return fail('amountInvalid');
+  const bottling = state.bottlings.find((b) => b.id === bottlingId);
+  if (!bottling) return fail('bottlingNotFound');
+  if (bottles > bottling.stock) return fail('notEnoughStock');
+  if (channel === 'export' && state.renown < MARKET.export.minRenown) return fail('renownTooLow');
+  const key = demandKeyOf(channel);
+  const gross = saleGross(
+    state.market.saturation,
+    key,
+    whiskyUnitPrice(state, bottling, channel),
+    bottles,
+  );
+  bottling.stock -= bottles;
+  state.market.saturation[key] += bottles;
+  recordTransaction(state, gross, 'sales', { product: 'whisky', channel });
+  const excise = exciseFor(channel, bottles);
+  if (excise > 0) recordTransaction(state, -excise, 'excise', { product: 'whisky', channel });
+  state.renown = Math.min(
+    BOTTLING.renown.max,
+    state.renown + renownGain(bottling.profile.quality, bottles, channel),
+  );
+  if (bottling.stock === 0) state.bottlings = state.bottlings.filter((b) => b.id !== bottlingId);
   return ok(state, [{ type: 'traded', hour: state.time.hour }]);
 }
 
@@ -493,6 +595,13 @@ export function executeCommand(state: GameState, command: Command): CommandResul
       return sellMalt(state, command.tonnes);
     case 'hire':
       return hire(state, command.candidateId);
+    case 'bottle':
+      return bottle(state, command.caskIds);
+    case 'sellWhisky':
+      return sellWhisky(state, command.bottlingId, command.channel, command.bottles);
+    case 'debugAddRenown':
+      state.renown = Math.min(BOTTLING.renown.max, state.renown + DEBUG.renownGift);
+      return ok(state);
     case 'fire':
       return fire(state, command.employeeId);
     case 'train':

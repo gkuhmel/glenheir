@@ -23,6 +23,7 @@ const NOTABLE: ReadonlySet<SimEvent['type']> = new Set([
   'fieldRipe',
   'caskMatured',
   'employeeQuit',
+  'bottled',
   'levelUp',
   'trainingDone',
 ]);

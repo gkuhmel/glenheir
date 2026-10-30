@@ -7,6 +7,7 @@ import { runMonthlyFinance } from './systems/finance';
 import { runProduction } from './systems/production';
 import { assignStaff, refreshCandidates, runStaff, workEfficiency } from './systems/staff';
 import { runWarehouses } from './systems/warehouse';
+import { recoverDemand } from './systems/market';
 import { toGameDate, type Season } from './time';
 
 export type SimEvent =
@@ -41,6 +42,8 @@ export type SimEvent =
   | { type: 'caskMatured'; hour: number; caskId: number; years: number }
   | { type: 'warehouseExtended'; hour: number; warehouseId: number }
   | { type: 'hired'; hour: number; employeeId: number }
+  | { type: 'bottlingStarted'; hour: number; roomId: number; bottles: number }
+  | { type: 'bottled'; hour: number; bottlingId: number; bottles: number }
   | { type: 'employeeLeft'; hour: number; employeeId: number }
   | { type: 'employeeQuit'; hour: number; name: string; role: StaffRole }
   | { type: 'levelUp'; hour: number; employeeId: number; name: string; level: number }
@@ -69,6 +72,7 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
   if (date.hour !== 0) return events;
 
   events.push({ type: 'dayStarted', hour });
+  recoverDemand(state.market.saturation);
   const previous = toGameDate(hour - 1);
   if (date.year !== previous.year) events.push({ type: 'yearStarted', hour, year: date.year });
   if (date.season !== previous.season) {
@@ -77,7 +81,6 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
   events.push(...runFields(state, rng));
   if (date.day === 1) {
     events.push({ type: 'monthStarted', hour, month: date.month });
-    state.market.retailBottlesThisMonth = 0;
     state.market.casksSoldThisMonth = 0;
     refreshCandidates(state, rng);
     events.push(...runMonthlyFinance(state));

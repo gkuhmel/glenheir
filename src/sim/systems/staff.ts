@@ -14,10 +14,11 @@ const OPERATORS: Record<Machine['kind'], readonly StaffRole[]> = {
   gin: ['worker'],
   malting: ['worker'],
   fermentation: [],
+  bottling: ['worker'],
 };
 
 /** Ordre de priorité : l'aval d'abord, pour que la chaîne ne s'engorge pas. */
-const PRIORITY: Machine['kind'][] = ['distillation', 'mashing', 'gin', 'malting'];
+const PRIORITY: Machine['kind'][] = ['bottling', 'distillation', 'mashing', 'gin', 'malting'];
 
 /** Nouvel employé, frais et motivé. */
 export function newEmployee(

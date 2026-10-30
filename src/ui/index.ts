@@ -156,6 +156,8 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
           state.market,
           state.staff,
           state.candidates,
+          state.bottlings,
+          state.renown,
         ]);
         if (key !== panelKey) {
           panelKey = key;

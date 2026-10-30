@@ -1,5 +1,5 @@
 import type { Game } from '../app/game';
-import { CASKS, MARKET, WAREHOUSE } from '../data/balance';
+import { BOTTLING, CASKS, MARKET, WAREHOUSE } from '../data/balance';
 import { formatMoney, t, type MessageKey } from '../i18n';
 import type { Command } from '../sim/commands';
 import {
@@ -18,6 +18,8 @@ import { HOURS_PER_YEAR, toGameDate } from '../sim/time';
 import type { PanelContent } from './building-panel';
 import { profileBars } from './production-panels';
 import { cellarMaster } from '../sim/systems/staff';
+import { prepareBottling } from '../sim/systems/bottling';
+import type { BottlingMachine } from '../sim/systems/production';
 import { showToast } from './toast';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = '') => {
@@ -53,6 +55,8 @@ export function formatGameDate(hour: number): string {
 export interface WarehouseActions {
   /** Entrer dans la vue intérieure d'un chai. */
   enter(warehouseId: number): void;
+  /** Redessiner le tiroir (après un choix qui ne change pas l'état du jeu). */
+  refresh(): void;
 }
 
 /** Tiroirs du chai : place libre, fiche de fût, agrandissement, onglet Chai. */
@@ -195,11 +199,107 @@ export class WarehousePanels {
           el('p', 'panel-status', t('cask.quality', qualityEstimate(cask))),
           el('p', 'panel-desc', t('cask.qualityHint')),
         );
-    body.append(profile, this.brokerSection(cask));
+    body.append(profile, this.bottlingSection(cask), this.brokerSection(cask));
     return { title: t('cask.title', { id: cask.id }), body };
   }
 
   /** Vente du fût entier au courtier : un par mois, whisky de 3 ans et plus. */
+  /** Fûts choisis pour un assemblage (avec un maître de chai). */
+  private readonly vat = new Set<number>();
+
+  /**
+   * Mise en bouteille depuis la fiche : le fût seul (single cask), ou un
+   * assemblage de plusieurs fûts choisis un à un si un maître de chai est là.
+   */
+  private bottlingSection(cask: Cask): HTMLElement {
+    const state = this.game.state;
+    const section = this.section(t('cask.bottleTitle'));
+    if (ageYears(cask, state.time.hour) < BOTTLING.minAgeYears) {
+      section.append(el('p', 'panel-desc', t('error.caskTooYoung')));
+      return section;
+    }
+    if (cask.inherited) {
+      section.append(el('p', 'panel-desc', t('error.inheritedCask')));
+      return section;
+    }
+    const machine = state.machines.find(
+      (m): m is BottlingMachine =>
+        m.kind === 'bottling' && !state.building.rooms.find((r) => r.id === m.roomId)?.ruined,
+    );
+    if (!machine) {
+      section.append(el('p', 'panel-desc', t('cask.noBottlingRoom')));
+      return section;
+    }
+    const cost = (bottles: number) => bottles * BOTTLING.costPerBottle;
+    const single = prepareBottling(state, [cask]);
+    section.append(
+      el(
+        'p',
+        'panel-desc',
+        t('cask.bottleDesc', {
+          bottles: single.bottled,
+          cost: formatMoney(cost(single.bottled)),
+        }),
+      ),
+    );
+    const busy = machine.run !== null;
+    if (busy) section.append(el('p', 'panel-status warning', t('cask.bottlingBusy')));
+    section.append(
+      this.button(
+        t('cask.bottle'),
+        () => this.bottle([cask.id]),
+        busy || cost(single.bottled) > state.finance.cash,
+      ),
+    );
+
+    // Assemblage : réservé au maître de chai.
+    if (!cellarMaster(state)) {
+      section.append(el('p', 'panel-desc', t('cask.vatNeedsMaster')));
+      return section;
+    }
+    for (const id of this.vat) if (!state.casks.some((c) => c.id === id)) this.vat.delete(id);
+    const inVat = this.vat.has(cask.id);
+    section.append(
+      this.button(t(inVat ? 'cask.vatRemove' : 'cask.vatAdd'), () => {
+        if (inVat) this.vat.delete(cask.id);
+        else this.vat.add(cask.id);
+        this.actions.refresh();
+      }),
+    );
+    const chosen = state.casks.filter((c) => this.vat.has(c.id));
+    if (chosen.length >= 2) {
+      const vatted = prepareBottling(state, chosen);
+      section.append(
+        el('h4', 'channel-title', t('cask.vatTitle')),
+        el(
+          'p',
+          'panel-desc',
+          t('cask.vatDesc', {
+            casks: chosen.length,
+            bottles: vatted.bottled,
+            age: vatted.ageYears,
+          }),
+        ),
+        this.button(
+          t('cask.vatBottle'),
+          () => this.bottle(chosen.map((c) => c.id)),
+          busy || cost(vatted.bottled) > state.finance.cash,
+        ),
+      );
+    }
+    return section;
+  }
+
+  private bottle(caskIds: number[]): void {
+    const result = this.game.execute({ type: 'bottle', caskIds });
+    if (!result.ok) {
+      showToast(t(`error.${result.error}` as MessageKey));
+      return;
+    }
+    for (const id of caskIds) this.vat.delete(id);
+    showToast(t('cask.bottleStarted'));
+  }
+
   private brokerSection(cask: Cask): HTMLElement {
     const state = this.game.state;
     const broker = MARKET.caskBroker;

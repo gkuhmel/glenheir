@@ -1223,3 +1223,71 @@ button.stat {
 .staff-card .button-row {
   margin-top: 6px;
 }
+
+/* Marché : demande, mises en bouteille, notes de dégustation */
+.demand-line {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+.demand-fill {
+  background: #a9822f;
+}
+
+.demand-fill.is-low {
+  background: #9b3a24;
+}
+
+.bottling-card {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(110, 86, 56, 0.45);
+  border-left: 6px solid #b5651d;
+  border-radius: 8px;
+  background: rgba(255, 250, 235, 0.45);
+}
+
+.bottling-label h4 {
+  margin: 0;
+  font-family: var(--font-title);
+  font-weight: 400;
+  font-size: 16px;
+}
+
+.bottling-meta {
+  margin: 2px 0 6px;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
+.tasting-note {
+  margin: 6px 0 8px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--brass);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.tasting-note p {
+  margin: 2px 0;
+}
+
+.channel-title {
+  margin: 10px 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dashboard .stock-line.negative strong {
+  color: #9b3a24;
+}
+
+.dashboard .stock-line.positive strong {
+  color: #3f6b2e;
+}

@@ -177,20 +177,22 @@ describe('gin', () => {
     expect(cash - state.finance.cash).toBe(2 * 200 * GIN.botanicalsPerBottle);
   });
 
-  it('se vend aux cavistes avec l’accise, dans la limite mensuelle', () => {
+  it('se vend aux cavistes avec l’accise ; inonder le marché fait baisser le prix', () => {
     const state = workshop();
-    state.stocks.gin = 500;
+    state.stocks.gin = 1_000;
     const cash = state.finance.cash;
-    expect(executeCommand(state, { type: 'sellGin', bottles: 300 }).ok).toBe(true);
-    expect(state.finance.cash - cash).toBe(300 * (GIN.price - 9));
-    expect(executeCommand(state, { type: 'sellGin', bottles: 1 })).toEqual({
-      ok: false,
-      error: 'retailCapReached',
-    });
-    // Le plafond se renouvelle le mois suivant.
+    expect(executeCommand(state, { type: 'sellGin', bottles: 1 }).ok).toBe(true);
+    // Première bouteille au prix plein, moins l'accise.
+    expect(state.finance.cash - cash).toBeCloseTo(GIN.price - 9, 2);
+    executeCommand(state, { type: 'sellGin', bottles: 599 });
+    const before = state.finance.cash;
+    executeCommand(state, { type: 'sellGin', bottles: 1 });
+    // Jauge pleine : −50 %.
+    expect(state.finance.cash - before).toBeCloseTo(GIN.price * 0.5 - 9, 2);
+    // La demande se reconstitue avec le temps.
     runTicks(state, 30 * 24);
-    expect(executeCommand(state, { type: 'sellGin', bottles: 100 }).ok).toBe(true);
-    expect(MARKET.retailMonthlyBottles).toBe(300);
+    expect(state.market.saturation.ginRetail).toBeLessThan(600 * 0.97 ** 29);
+    expect(MARKET.demand.capacity.ginRetail).toBe(600);
   });
 });
 

@@ -80,7 +80,10 @@ async function main(): Promise<void> {
   let enterWarehouse: (id: number) => void = () => {};
   let interiorScene: InteriorScene | null = null;
   let warehouseScene: WarehouseScene | null = null;
-  const cellar = new WarehousePanels(game, { enter: (id) => enterWarehouse(id) });
+  const cellar = new WarehousePanels(game, {
+    enter: (id) => enterWarehouse(id),
+    refresh: () => ui.refreshPanel(),
+  });
   const team = new StaffPanels(game);
   const ui = mountUi(uiRoot, game, {
     menuContent: () =>

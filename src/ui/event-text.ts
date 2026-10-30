@@ -18,6 +18,8 @@ export function describeEvent(event: SimEvent): string | null {
       return t('event.fieldRipe');
     case 'caskMatured':
       return t('event.caskMatured');
+    case 'bottled':
+      return t('event.bottled', { bottles: event.bottles });
     case 'employeeQuit':
       return t('event.employeeQuit', {
         name: event.name,

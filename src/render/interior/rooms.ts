@@ -614,6 +614,67 @@ function ginWorkshop(c: Ctx): void {
   );
 }
 
+/** Hauteur du tapis de la chaîne d'embouteillage (les bouteilles animées y roulent). */
+export const BOTTLING_BELT = { y: 52, from: 22, to: 278 };
+
+/**
+ * Embouteillage : tapis à rouleaux, remplisseuse en inox à quatre becs,
+ * étiqueteuse et son rouleau d'étiquettes, cartons marqués GLENHEIR.
+ */
+function bottling(c: Ctx): void {
+  const { g, rng, w, floor, ruined } = c;
+  whitewashWall(c);
+  ceilingBeams(c);
+  lamp(c, 150);
+  const steel = ruined ? P.rust : 0xb9c2c4;
+  const steelDark = ruined ? 0x5a4a38 : 0x7d898c;
+  // Bouteilles vides sur une étagère, contre le mur.
+  shelf(g, 16, 70, 96);
+  for (let x = 22; x < 104; x += 10) {
+    g.roundRect(x, 46, 7, 24, 2).fill({ color: 0x6f8f6a, alpha: 0.8 });
+    g.rect(x + 2, 40, 3, 7).fill({ color: 0x6f8f6a, alpha: 0.8 });
+  }
+  // Tapis roulant sur pieds.
+  const beltY = floor - BOTTLING_BELT.y;
+  g.rect(BOTTLING_BELT.from, beltY, BOTTLING_BELT.to - BOTTLING_BELT.from, 8).fill(0x2f3236);
+  for (let x = BOTTLING_BELT.from + 4; x < BOTTLING_BELT.to; x += 12)
+    g.circle(x, beltY + 4, 2.5).fill(steelDark);
+  for (const x of [BOTTLING_BELT.from + 6, w / 2, BOTTLING_BELT.to - 10])
+    g.rect(x, beltY + 8, 5, BOTTLING_BELT.y - 8).fill(steelDark);
+  // Remplisseuse : cuve d'inox et becs au-dessus du tapis.
+  const fx = 74;
+  g.roundRect(fx - 26, beltY - 92, 52, 40, 8)
+    .fill(steel)
+    .stroke({ width: 2, color: steelDark });
+  g.ellipse(fx, beltY - 92, 26, 6).fill(steelDark);
+  g.rect(fx - 4, beltY - 112, 8, 20).fill(steelDark);
+  for (let k = -1.5; k <= 1.5; k++) g.rect(fx + k * 11 - 1.5, beltY - 52, 3, 20).fill(steelDark);
+  g.rect(fx - 30, beltY - 54, 60, 4).fill(steelDark);
+  // Étiqueteuse : bâti, rouleau d'étiquettes crème et brosse.
+  const lx = 176;
+  g.roundRect(lx - 22, beltY - 64, 44, 52, 6)
+    .fill(steel)
+    .stroke({ width: 2, color: steelDark });
+  g.circle(lx, beltY - 80, 16)
+    .fill(0xeadfc4)
+    .stroke({ width: 3, color: steelDark });
+  g.circle(lx, beltY - 80, 5).fill(steelDark);
+  g.rect(lx - 2, beltY - 64, 4, 16).fill(0xeadfc4);
+  // Cartons empilés au bout de la chaîne.
+  for (let i = 0; i < 5; i++) {
+    const bx = 226 + (i % 2) * 32 - (i >= 4 ? 16 : 0);
+    const by = floor - 26 - Math.floor(i / 2) * 24;
+    if (by < beltY - 40) continue;
+    g.rect(bx, by, 30, 24).fill(P.sackDark).stroke({ width: 1, color: P.woodDark });
+    g.rect(bx + 4, by + 9, 22, 6).fill({ color: P.woodDark, alpha: 0.5 });
+  }
+  if (!ruined) {
+    // Un carton ouvert plein de bouteilles prêtes.
+    for (let i = 0; i < 4; i++)
+      g.roundRect(236 + i * 6, beltY - 18 + rng.range(-1, 1), 4, 14, 1.5).fill(P.bottle[0]!);
+  }
+}
+
 /** Emplacement acheté mais vide : murs nus, échafaudage, matériaux. */
 function emptySlot(c: Ctx): void {
   const { g, w, floor } = c;
@@ -646,6 +707,7 @@ const DRAWERS: Record<RoomType, (c: Ctx) => void> = {
   toilets,
   staffRoom,
   ginWorkshop,
+  bottling,
 };
 
 // ---------------------------------------------------------------- Ruine

@@ -1,11 +1,27 @@
 import type { Game } from '../app/game';
-import { BARLEY_VARIETIES, EXCISE, GIN, MARKET, PRODUCTION, TERROIRS } from '../data/balance';
+import {
+  BARLEY_VARIETIES,
+  BOTTLING,
+  EXCISE,
+  GIN,
+  MARKET,
+  PRODUCTION,
+  TERROIRS,
+} from '../data/balance';
 import { formatMoney, formatNumber, formatShortDuration, t, type MessageKey } from '../i18n';
 import type { Command } from '../sim/commands';
 import { PROFILE_AXES, type Profile } from '../sim/profile';
 import { canSowAt, growth, isRipe, seedCost, type BarleyVariety } from '../sim/systems/fields';
 import { exciseFor } from '../sim/systems/finance';
-import { barleyPrice, newMakeValue } from '../sim/systems/market';
+import {
+  barleyPrice,
+  demandFactor,
+  newMakeValue,
+  saleGross,
+  type DemandKey,
+} from '../sim/systems/market';
+import { whiskyUnitPrice } from '../sim/systems/bottling';
+import { bottlingLabel, tastingBlock } from './tasting';
 import {
   isDone,
   remainingHours,
@@ -148,6 +164,17 @@ export class ProductionPanels {
         return [status, this.fermentationSection(machine)];
       case 'distillation':
         return [status, ...this.stillSections(machine)];
+      case 'bottling':
+        return [
+          status,
+          el(
+            'p',
+            'panel-desc',
+            machine.run
+              ? t('bottling.inProgress', { bottles: formatNumber(machine.run.bottled) })
+              : t('bottling.howTo', { min: BOTTLING.minAgeYears }),
+          ),
+        ];
       case 'gin':
         return [
           status,
@@ -449,39 +476,131 @@ export class ProductionPanels {
     return this.section(t('market.brokerTitle'), t('market.brokerDesc', { left }));
   }
 
-  /** Gin vendu aux cavistes : prix plein moins l'accise, volume plafonné chaque mois. */
+  /** Jauge de demande d'un canal : plus elle est pleine, moins on vend cher. */
+  private demandLine(key: DemandKey): HTMLElement {
+    const factor = demandFactor(key, this.game.state.market.saturation[key]);
+    const line = el('div', 'demand-line');
+    const bar = el('span', 'profile-bar');
+    const fill = el('span', `profile-fill demand-fill${factor < 0.75 ? ' is-low' : ''}`);
+    fill.style.width = `${Math.round(factor * 100)}%`;
+    bar.append(fill);
+    line.append(
+      el('span', '', t('market.demand')),
+      bar,
+      el('span', '', t('market.demandValue', { pct: Math.round(factor * 100) })),
+    );
+    return line;
+  }
+
+  /**
+   * Boutons de vente par quantité : chacun annonce la recette nette et le prix
+   * moyen, qui baisse quand on vend beaucoup d'un coup.
+   */
+  private saleButtons(
+    stock: number,
+    key: DemandKey,
+    unit: number,
+    exciseChannel: 'retail' | 'export',
+    command: (bottles: number) => Command,
+  ): HTMLElement {
+    const row = el('div', 'button-row');
+    const amounts = [...new Set([12, 60, 300].map((n) => Math.min(n, stock)).concat(stock))]
+      .filter((n) => n > 0)
+      .slice(0, 4);
+    for (const bottles of amounts) {
+      const gross = saleGross(this.game.state.market.saturation, key, unit, bottles);
+      const net = gross - exciseFor(exciseChannel, bottles);
+      row.append(
+        this.button(
+          t('market.sellBottles', {
+            bottles: formatNumber(bottles),
+            amount: formatMoney(Math.round(net)),
+            avg: formatMoney(Math.round((gross / bottles) * 100) / 100),
+          }),
+          () =>
+            this.run(command(bottles), t('market.sold', { amount: formatMoney(Math.round(net)) })),
+        ),
+      );
+    }
+    return row;
+  }
+
+  /** Gin vendu aux cavistes : accise due, le prix baisse si on inonde le marché. */
   private ginSection(): HTMLElement {
-    const { stocks, market } = this.game.state;
-    const left = Math.max(0, MARKET.retailMonthlyBottles - market.retailBottlesThisMonth);
+    const { stocks } = this.game.state;
     const section = this.section(
       t('market.ginTitle'),
       t('market.ginDesc', {
         price: formatMoney(GIN.price),
         excise: formatMoney(EXCISE.perUkBottle),
-        left,
       }),
       this.stockLine('stock.gin', t('stock.bottles', { amount: formatNumber(stocks.gin) })),
+      this.demandLine('ginRetail'),
     );
-    const sellable = Math.min(stocks.gin, left);
-    if (sellable <= 0) {
+    if (stocks.gin <= 0) section.append(el('p', 'panel-desc', t('market.noGin')));
+    else
       section.append(
-        el('p', 'panel-desc', t(stocks.gin > 0 ? 'error.retailCapReached' : 'market.noGin')),
+        this.saleButtons(stocks.gin, 'ginRetail', GIN.price, 'retail', (bottles) => ({
+          type: 'sellGin',
+          bottles,
+        })),
       );
-      return section;
-    }
-    const net = (bottles: number) => bottles * GIN.price - exciseFor('retail', bottles);
-    const row = el('div', 'button-row');
-    for (const bottles of new Set([Math.min(50, sellable), sellable])) {
-      row.append(
-        this.button(t('market.sellGin', { bottles, amount: formatMoney(net(bottles)) }), () =>
-          this.run(
-            { type: 'sellGin', bottles },
-            t('market.sold', { amount: formatMoney(net(bottles)) }),
-          ),
+    return section;
+  }
+
+  /** Whisky en bouteille : chaque mise en bouteille, sa note, ses ventes par canal. */
+  private whiskySection(): HTMLElement {
+    const state = this.game.state;
+    const section = this.section(
+      t('market.whiskyTitle'),
+      t('market.whiskyDesc', { renown: MARKET.export.minRenown }),
+      this.demandLine('whiskyRetail'),
+    );
+    const exportOpen = state.renown >= MARKET.export.minRenown;
+    if (exportOpen) section.append(this.demandLine('whiskyExport'));
+    if (state.bottlings.length === 0) section.append(el('p', 'panel-desc', t('market.noWhisky')));
+    for (const bottling of state.bottlings) {
+      const card = el('div', 'bottling-card');
+      card.append(bottlingLabel(bottling), tastingBlock(bottling));
+      const retail = whiskyUnitPrice(state, bottling, 'retail');
+      card.append(
+        this.stockLine(
+          'market.inStock',
+          t('stock.bottles', { amount: formatNumber(bottling.stock) }),
         ),
+        el('h4', 'channel-title', t('market.retail', { price: formatMoney(Math.round(retail)) })),
+        this.saleButtons(bottling.stock, 'whiskyRetail', retail, 'retail', (bottles) => ({
+          type: 'sellWhisky',
+          bottlingId: bottling.id,
+          channel: 'retail',
+          bottles,
+        })),
       );
+      if (exportOpen) {
+        const price = whiskyUnitPrice(state, bottling, 'export');
+        card.append(
+          el('h4', 'channel-title', t('market.export', { price: formatMoney(Math.round(price)) })),
+          this.saleButtons(bottling.stock, 'whiskyExport', price, 'export', (bottles) => ({
+            type: 'sellWhisky',
+            bottlingId: bottling.id,
+            channel: 'export',
+            bottles,
+          })),
+        );
+      } else {
+        card.append(
+          el(
+            'p',
+            'panel-desc',
+            t('market.exportLocked', {
+              renown: Math.floor(state.renown),
+              min: MARKET.export.minRenown,
+            }),
+          ),
+        );
+      }
+      section.append(card);
     }
-    section.append(row);
     return section;
   }
 
@@ -539,7 +658,13 @@ export class ProductionPanels {
     } else {
       section.append(el('p', 'panel-desc', t('market.noNewMake')));
     }
-    body.append(section, this.maltSection(), this.ginSection(), this.brokerLine());
+    body.append(
+      this.whiskySection(),
+      this.ginSection(),
+      section,
+      this.maltSection(),
+      this.brokerLine(),
+    );
     body.append(this.barleySection());
     body.append(el('p', 'panel-desc', t('market.later')));
     return { title: t('market.title'), body };

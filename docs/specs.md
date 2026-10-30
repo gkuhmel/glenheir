@@ -80,7 +80,7 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 - **Sur la carte**, la distillerie est un bâtiment unique au milieu de la cour, dessiné en détail : murs de pierre, toits d'ardoise, four à malt coiffé d'une pagode, cheminée. Son extérieur reflète ce qui est construit à l'intérieur : chaque nouvel emplacement ajoute une aile ou un étage, la pagode fume quand la malterie tourne, la cheminée fume quand les alambics chauffent. En ruine au départ (toits percés, murs envahis de lierre), il se restaure salle par salle.
 - **Taper la distillerie** ouvre sa **vue intérieure en coupe de profil**, comme une maquette ouverte : les salles sont côte à côte et sur plusieurs niveaux, on y voit les machines (malt étalé, cuve d'empâtage, cuves de fermentation, alambics de cuivre) et les personnages travailler. Pan horizontal et zoom au doigt ; un bouton « Domaine » ramène à la carte.
 - **Grille de salles** : jusqu'à 8 emplacements de large sur 3 niveaux (cave, rez-de-chaussée, étage). Au départ, le rez-de-chaussée compte 5 salles en ruine : malterie, brasserie, cuves de fermentation, salle des alambics, accueil. Les autres emplacements s'achètent un par un (à gauche, à droite, un étage, une cave), puis on y construit la salle de son choix ; les escaliers se placent automatiquement.
-- **Types de salles** : malterie, brasserie, cuves de fermentation, salle des alambics, atelier gin, accueil (guichet), salle de dégustation, boutique, café, toilettes, salle du personnel (repos, moral).
+- **Types de salles** : malterie, brasserie, cuves de fermentation, salle des alambics, atelier gin, embouteillage, accueil (guichet), salle de dégustation, boutique, café, toilettes, salle du personnel (repos, moral).
 - **Fusion** : deux ou trois salles identiques voisines sur le même niveau fusionnent en une grande salle (capacités additionnées, +10 % d'efficacité par salle fusionnée, décor plus riche).
 - **Gestion dans la scène** : taper une machine ouvre ses actions (lancer un maltage, un brassin, une distillation, régler les coupes) ; taper une salle en ruine propose sa restauration ; taper un emplacement vide propose d'y construire. Les onglets du bas restent des vues d'ensemble (toutes les files, tous les fûts, le marché, l'équipe).
 - **Chais** : bâtiments séparés sur la carte, longs chais de pierre traditionnels (*dunnage*). Le premier est en ruine au départ. Sa vue intérieure en coupe montre les rangées de fûts sur 3 hauteurs (bas, milieu, haut) ; on y remplit un fût en tapant une place libre et on consulte un fût en le tapant. L'extension ajoute 20 places et allonge le bâtiment.
@@ -145,6 +145,13 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 
 Le prix final = prix de base × facteur qualité × facteur renommée × facteur fût. Une bouteille = 0,7 L à 40 %, soit 0,28 LPA.
 
+- **Prix de base** selon l'âge sur l'étiquette, interpolé entre les paliers (3 ans £35, 8 ans £55, 12 ans £80, 18 ans £180, plafonné ensuite). **Facteur qualité** = 0,6 + 0,008 × qualité (qualité 50 → ×1). **Facteur renommée** = 1 + renommée / 200. **Facteur fût** = moyenne des facteurs des fûts pondérée par le volume (sherry ×1,2).
+- **Mise en bouteille** : dans une **salle d'embouteillage** (nouvelle salle, £6 000 à restaurer, £9 000 à construire), dont la chaîne traite 500 bouteilles par jour avec un ouvrier. On la lance depuis la fiche d'un fût de 3 ans ou plus : £3 par bouteille (verre, bouchon, étiquette), le fût quitte le chai. Un seul lot à la fois.
+- **Single cask ou assemblage** : un fût seul, ou, avec un maître de chai, plusieurs fûts choisis un à un ; le profil est la moyenne pondérée par le volume, l'âge sur l'étiquette celui du plus jeune fût.
+- **Fûts hérités** : promis au courtier par le grand-oncle, ils ne se mettent pas en bouteille (sinon le sherry de 18 ans vaudrait plus de £130 000 dès le début).
+- **Note de dégustation** : chaque mise en bouteille reçoit une note (nez, bouche, finale) rédigée à partir de son profil : arômes des axes dominants, signature du fût, longueur de la finale selon la qualité. Elle ne change jamais.
+- **Renommée** : chaque bouteille de whisky de qualité 60 ou plus vendue rapporte (qualité − 55) × 0,002 de renommée (moitié à l'export), jusqu'à 100.
+
 ### Personnel (4 rôles)
 
 | Rôle | Effet | Salaire mensuel (niv. 1 → 5) |
@@ -181,7 +188,8 @@ Le prix final = prix de base × facteur qualité × facteur renommée × facteur
 | Export | Renommée ≥ 30 | 70 % | Élevé |
 | Assembleurs (vrac) | Dès le départ | Prix fixe au LPA | Illimité |
 
-- La demande par canal baisse si on inonde le marché (élasticité simple), puis se reconstitue.
+- **Saturation de la demande** : chaque canal a une jauge (gin chez les cavistes : 600 bouteilles, whisky chez les cavistes : 600, whisky à l'export : 2 000). Chaque bouteille vendue la remplit d'une unité ; le prix d'une bouteille baisse de 50 % × jauge / capacité (−50 % au plus). Les jauges se vident de 3 % par jour. Le plafond mensuel des cavistes est remplacé par cette jauge. L'interface annonce, avant la vente, la recette et le prix moyen pour 12, 60 ou 300 bouteilles.
+- **Export** : 70 % du prix, sans accise, à partir de 30 de renommée.
 - **2 rivaux IA** qui évoluent selon des courbes scriptées avec un peu d'aléatoire : *Glen Rothmore* (Speyside, gros volume, prix bas) et *Ardnacraig* (Islay, petit volume, premium). Ils lancent des produits, gagnent des médailles, prennent des parts de marché.
 
 ### Renommée
@@ -208,6 +216,7 @@ La restauration des ruines coûte environ £50 000 avant le premier fût rempli 
 | Salle des alambics (salle en ruine) | £12 000 | Salle de distillation |
 | Vieille paire d'alambics | £8 000 | Petit alambic restauré (évite l'achat à £25 000) |
 | Chai (bâtiment en ruine, 40 places) | £6 000 | Vieillissement |
+| Embouteillage (salle à construire) | £9 000 | Mise en bouteille |
 | Accueil (salle en ruine) | £20 000 | Visites, guichet et boutique |
 | Café (salle à construire) | £6 000 | Besoin visiteurs, revenu d'appoint |
 | Toilettes (salle à construire) | £1 500 | Besoin visiteurs |

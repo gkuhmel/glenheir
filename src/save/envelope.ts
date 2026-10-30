@@ -59,6 +59,11 @@ function assertGameState(value: unknown): asserts value is GameState {
     throw new Error('terroir invalide');
   if (!Array.isArray(value.casks) || !isRecord(value.market)) throw new Error('chai invalide');
   if (!Array.isArray(value.candidates)) throw new Error('candidats invalides');
+  if (
+    !Array.isArray(value.bottlings) ||
+    !isRecord((value.market as Record<string, unknown>).saturation)
+  )
+    throw new Error('bouteilles invalides');
 }
 
 /** Lit une sauvegarde texte, applique les migrations et valide le résultat. */

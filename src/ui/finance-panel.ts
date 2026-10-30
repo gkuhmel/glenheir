@@ -1,5 +1,8 @@
 import type { Game } from '../app/game';
-import { FINANCE } from '../data/balance';
+import { FINANCE, GIN } from '../data/balance';
+import { whiskyUnitPrice } from '../sim/systems/bottling';
+import { caskValue } from '../sim/systems/warehouse';
+import { monthIndex } from '../sim/time';
 import { formatMoney, formatSignedMoney, t, type MessageKey } from '../i18n';
 import { loanCapacity } from '../sim/commands';
 import { monthlyPayroll } from '../sim/systems/finance';
@@ -22,6 +25,28 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text 
   return node;
 };
 
+/** Catégories qui ne relèvent pas de l'exploitation (emprunts, travaux, debug). */
+const OUTSIDE_RESULT = new Set(['loanProceeds', 'loanPrincipal', 'investment', 'debug']);
+
+/** Totaux d'un mois du journal : ventes par produit et canal, dépenses par poste. */
+function monthTotals(game: Game, month: number) {
+  const sales = new Map<string, number>();
+  const expenses = new Map<string, number>();
+  let result = 0;
+  for (const e of game.state.journal.entries) {
+    if (monthIndex(e.hour) !== month) continue;
+    if (!OUTSIDE_RESULT.has(e.category)) result += e.amount;
+    if (e.category === 'sales') {
+      const key =
+        e.product === 'whisky' && e.channel ? `whisky.${e.channel}` : (e.product ?? 'other');
+      sales.set(key, (sales.get(key) ?? 0) + e.amount);
+    } else if (e.amount < 0) {
+      expenses.set(e.category, (expenses.get(e.category) ?? 0) - e.amount);
+    }
+  }
+  return { sales, expenses, result };
+}
+
 /** Contenu du tiroir Finances : trésorerie, prêts et dernières opérations. */
 export function createFinancePanel(game: Game): FinancePanel {
   const element = el('div', 'finance');
@@ -35,7 +60,7 @@ export function createFinancePanel(game: Game): FinancePanel {
 
   function render() {
     const { finance, journal } = game.state;
-    const key = `${finance.cash}|${journal.entries.length}|${finance.loans.map((l) => l.principal).join()}`;
+    const key = `${finance.cash}|${journal.entries.length}|${finance.loans.map((l) => l.principal).join()}|${game.state.time.hour}`;
     if (key === lastKey) return;
     lastKey = key;
 
@@ -52,6 +77,48 @@ export function createFinancePanel(game: Game): FinancePanel {
         'p',
         'finance-note',
         t('finance.payroll', { amount: formatMoney(monthlyPayroll(game.state)) }),
+      ),
+    );
+
+    // Tableau de bord : le mois en cours, comparé au précédent, et la valeur du stock.
+    const month = monthIndex(game.state.time.hour);
+    const now = monthTotals(game, month);
+    const before = monthTotals(game, month - 1);
+    const dashboard = el('section', 'dashboard');
+    const line = (label: string, amount: number, className = '') => {
+      const row = el('div', `stock-line ${className}`);
+      row.append(el('span', '', label), el('strong', '', formatSignedMoney(Math.round(amount))));
+      return row;
+    };
+    dashboard.append(
+      el('h3', '', t('finance.month')),
+      line(t('finance.result'), now.result, now.result < 0 ? 'negative' : 'positive'),
+      el(
+        'p',
+        'finance-note',
+        t('finance.lastMonth', { amount: formatSignedMoney(Math.round(before.result)) }),
+      ),
+    );
+    if (now.sales.size > 0) dashboard.append(el('h4', 'channel-title', t('finance.salesBy')));
+    for (const [key, amount] of [...now.sales].sort((a, b) => b[1] - a[1]))
+      dashboard.append(line(t(`product.${key}` as MessageKey), amount));
+    if (now.expenses.size > 0) dashboard.append(el('h4', 'channel-title', t('finance.expensesBy')));
+    for (const [key, amount] of [...now.expenses].sort((a, b) => b[1] - a[1]))
+      dashboard.append(line(t(`category.${key}` as MessageKey), -amount));
+    const state = game.state;
+    const casks = state.casks.reduce((sum, c) => sum + caskValue(c, state.time.hour), 0);
+    const bottles = state.bottlings.reduce(
+      (sum, b) => sum + b.stock * whiskyUnitPrice(state, b, 'retail'),
+      0,
+    );
+    dashboard.append(
+      el('h4', 'channel-title', t('finance.stock')),
+      line(t('finance.stockCasks', { count: state.casks.length }), casks),
+      line(
+        t('finance.stockBottles', {
+          count: state.bottlings.reduce((sum, b) => sum + b.stock, 0) + state.stocks.gin,
+        }),
+        bottles + state.stocks.gin * GIN.price,
       ),
     );
 
@@ -125,7 +192,7 @@ export function createFinancePanel(game: Game): FinancePanel {
     }
     history.append(table);
 
-    element.replaceChildren(summary, loans, borrow, history);
+    element.replaceChildren(summary, dashboard, loans, borrow, history);
   }
 
   return { element, render };
