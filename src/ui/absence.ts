@@ -58,6 +58,7 @@ export function showAbsence(summary: AbsenceSummary): void {
     produced.barley > 0 ? t('absence.producedBarley', { amount: produced.barley }) : '',
     produced.malt > 0 ? t('absence.producedMalt', { amount: produced.malt }) : '',
     produced.newMake > 0 ? t('absence.producedNewMake', { amount: produced.newMake }) : '',
+    produced.gin > 0 ? t('absence.producedGin', { amount: produced.gin }) : '',
   ].filter(Boolean);
   if (items.length > 0) {
     const line = document.createElement('p');

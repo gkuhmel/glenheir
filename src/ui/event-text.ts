@@ -16,6 +16,8 @@ export function describeEvent(event: SimEvent): string | null {
       return t('event.bankrupt');
     case 'fieldRipe':
       return t('event.fieldRipe');
+    case 'caskMatured':
+      return t('event.caskMatured');
     default:
       return null;
   }

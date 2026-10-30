@@ -17,7 +17,7 @@ import './styles.css';
 /** Hauteur des bandeaux d'entrelacs collés aux barres (voir styles.css). */
 const KNOT_BAND_HEIGHT = 14;
 
-export type SceneId = 'map' | 'interior';
+export type SceneId = 'map' | 'interior' | 'warehouse';
 
 export interface Ui {
   update(state: GameState): void;
@@ -26,6 +26,8 @@ export interface Ui {
   /** Ouvre le tiroir avec un contenu recalculé à chaque changement d'état. */
   showPanel(provider: () => PanelContent | null): void;
   closePanel(): void;
+  /** Ferme le tiroir d'un onglet (avant de changer de scène). */
+  closeTab(): void;
   /** Redessine le tiroir ouvert (après un réglage qui ne change pas l'état du jeu). */
   refreshPanel(): void;
   setScene(scene: SceneId): void;
@@ -150,6 +152,8 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
           state.machines,
           state.fields,
           state.stocks,
+          state.casks.length,
+          state.market,
         ]);
         if (key !== panelKey) {
           panelKey = key;
@@ -168,6 +172,10 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
       panelKey = '';
       if (drawer.isOpen && panelProvider) renderPanel();
     },
+    closeTab: () => {
+      if (mode === 'tab' || mode === 'finance') closeDrawer();
+      resetTab();
+    },
     closePanel: () => {
       if (mode === 'panel') {
         drawer.close();
@@ -177,7 +185,8 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
     },
     setScene: (next) => {
       scene = next;
-      header.setVisible(next === 'interior');
+      header.setVisible(next !== 'map');
+      header.setBuildVisible(next === 'interior');
       header.setBuildMode(false);
       handlers.onBuildMode(false);
     },

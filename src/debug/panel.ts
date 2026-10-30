@@ -99,6 +99,9 @@ export function mountDebugPanel(root: HTMLElement, game: Game, startOpen: boolea
       button(t('debug.addCash'), () => {
         game.execute({ type: 'debugAddCash' });
       }),
+      button(t('debug.ageCasks'), () => {
+        game.execute({ type: 'debugAgeCasks', years: 1 });
+      }),
     ),
     section(
       'debug.save',

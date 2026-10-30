@@ -174,6 +174,19 @@ export class MachineActivity {
           timer: 0,
         });
         return;
+      case 'gin':
+        if (!running) return;
+        // Feu sous le petit alambic, vapeur au panier à botaniques, gouttes au bout du col.
+        this.glow(x0 + 210, floor - 9, 11);
+        emitters.push({ x: x0 + 210, y: floor - 134, style: STYLES.steam, everyMs: 340, timer: 0 });
+        emitters.push({
+          x: x0 + W - 16,
+          y: floor - 86,
+          style: STYLES.drop,
+          everyMs: 520,
+          timer: 0,
+        });
+        return;
     }
   }
 }

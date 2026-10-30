@@ -4,6 +4,8 @@ export interface SceneHeader {
   element: HTMLElement;
   setVisible(visible: boolean): void;
   setBuildMode(on: boolean): void;
+  /** Le mode « Agrandir » n'existe que dans la distillerie. */
+  setBuildVisible(visible: boolean): void;
 }
 
 const HAMMER =
@@ -40,6 +42,9 @@ export function createSceneHeader(
     element,
     setVisible(visible) {
       element.hidden = !visible;
+    },
+    setBuildVisible(visible) {
+      toggle.hidden = !visible;
     },
     setBuildMode(value) {
       on = value;

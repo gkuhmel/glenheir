@@ -9,6 +9,7 @@ import { t } from './i18n';
 import { InteriorScene } from './render/interior/interior-scene';
 import { MapScene } from './render/map/map-scene';
 import { Stage } from './render/stage';
+import { WarehouseScene } from './render/warehouse/warehouse-scene';
 import { startAutosave } from './save/autosave';
 import { mountUi } from './ui';
 import { showAbsence } from './ui/absence';
@@ -17,6 +18,7 @@ import { menuPanel } from './ui/menu-panel';
 import { ProductionPanels } from './ui/production-panels';
 import { showTerroirChoice } from './ui/terroir';
 import { showToast } from './ui/toast';
+import { WarehousePanels } from './ui/warehouse-panels';
 
 /** Empêche Safari iOS de zoomer la page entière (il ignore user-scalable=no). */
 function blockPageZoom(): void {
@@ -74,7 +76,10 @@ async function main(): Promise<void> {
   };
 
   let goToMap = () => {};
+  let enterWarehouse: (id: number) => void = () => {};
   let interiorScene: InteriorScene | null = null;
+  let warehouseScene: WarehouseScene | null = null;
+  const cellar = new WarehousePanels(game, { enter: (id) => enterWarehouse(id) });
   const ui = mountUi(uiRoot, game, {
     menuContent: () =>
       menuPanel(game, {
@@ -85,10 +90,17 @@ async function main(): Promise<void> {
         },
       }),
     onBack: () => goToMap(),
-    onPanelClosed: () => interiorScene?.clearSelection(),
+    onPanelClosed: () => {
+      interiorScene?.clearSelection();
+      warehouseScene?.clearSelection();
+    },
     onBuildMode: (on) => interiorScene?.setBuildMode(on),
-    tabContent: (tab) =>
-      tab === 'production' ? production.overview() : tab === 'market' ? production.market() : null,
+    tabContent: (tab) => {
+      if (tab === 'production') return production.overview();
+      if (tab === 'warehouse') return cellar.overview();
+      if (tab === 'market') return production.market();
+      return null;
+    },
   });
   ui.update(game.state);
 
@@ -98,6 +110,24 @@ async function main(): Promise<void> {
       selection ? ui.showPanel(() => panel.forSelection(selection)) : ui.closePanel(),
   });
   interiorScene = interior;
+  const warehouse = new WarehouseScene(stage.invalidate, {
+    select: (warehouseId, selection) => {
+      if (!selection) ui.closePanel();
+      else if (selection.kind === 'place')
+        ui.showPanel(() => cellar.forPlace(warehouseId, selection.place));
+      else ui.showPanel(() => cellar.forExtension(warehouseId));
+    },
+  });
+  warehouseScene = warehouse;
+  enterWarehouse = (id) =>
+    fade(() => {
+      ui.closePanel();
+      ui.closeTab();
+      warehouse.open(id);
+      warehouse.setState(game.state);
+      stage.show(warehouse);
+      ui.setScene('warehouse');
+    });
   const map = new MapScene(stage.invalidate, {
     openDistillery: () =>
       fade(() => {
@@ -106,13 +136,18 @@ async function main(): Promise<void> {
         stage.show(interior);
         ui.setScene('interior');
       }),
-    selectWarehouse: (id) => ui.showPanel(() => panel.forWarehouse(id)),
+    selectWarehouse: (id) => {
+      // Un chai restauré s'ouvre directement ; en ruine, on propose de le restaurer.
+      if (game.state.warehouses.find((w) => w.id === id)?.ruined === false) enterWarehouse(id);
+      else ui.showPanel(() => panel.forWarehouse(id));
+    },
     selectField: (id) => ui.showPanel(() => production.forField(id)),
   });
   goToMap = () =>
     fade(() => {
       ui.closePanel();
       interior.clearSelection();
+      warehouse.clearSelection();
       stage.show(map);
       ui.setScene('map');
     });
@@ -135,6 +170,7 @@ async function main(): Promise<void> {
     ui.update(game.state);
     map.setState(game.state);
     interior.setState(game.state, events);
+    warehouse.setState(game.state);
     askTerroir();
   });
   askTerroir();

@@ -2,6 +2,7 @@ import { Container, Graphics, Text } from 'pixi.js';
 import { BUILDING, MAP } from '../../data/balance';
 import { createRng, type Rng } from '../../sim/rng';
 import { roomAt, type Building, type Room, type Warehouse } from '../../sim/systems/building';
+import { extensionsOf } from '../../sim/systems/warehouse';
 import type { Rect } from '../../sim/terrain';
 
 const T = MAP.tileSize;
@@ -445,7 +446,23 @@ export function drawDistillery(building: Building): Container {
 }
 
 /** Long chai de pierre (dunnage) vu du dessus, pignon blanchi au sud. */
-export function drawWarehouse(warehouse: Warehouse, area: Rect): Container {
+/** Longueur du chai sur la carte, en tuiles : une travée de plus par agrandissement. */
+const WAREHOUSE_LENGTH = { base: 10, perExtension: 1.5 };
+
+/**
+ * Emprise du chai dans sa zone réservée : le pignon et la porte restent au sud,
+ * le bâtiment s'allonge vers le nord à chaque agrandissement.
+ */
+export function warehouseFootprint(warehouse: Warehouse, area: Rect): Rect {
+  const length = Math.min(
+    area.height,
+    WAREHOUSE_LENGTH.base + extensionsOf(warehouse) * WAREHOUSE_LENGTH.perExtension,
+  );
+  return { x: area.x, y: area.y + area.height - length, width: area.width, height: length };
+}
+
+export function drawWarehouse(warehouse: Warehouse, reserved: Rect): Container {
+  const area = warehouseFootprint(warehouse, reserved);
   const rng = createRng(MAP.terrainSeed + 404 + warehouse.id);
   const g = new Graphics();
   const x = area.x * T;

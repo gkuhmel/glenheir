@@ -58,4 +58,9 @@ describe('calendrier', () => {
     expect(monthIndex(at(30, 0))).toBe(1);
     expect(monthIndex(at(360, 0))).toBe(12);
   });
+
+  it('date une heure négative (fût vieilli par l’outil de test) sans casser le calendrier', () => {
+    const d = toGameDate(-3 * HOURS_PER_YEAR);
+    expect(d).toMatchObject({ year: -2, month: 3, day: 1, hour: 8 });
+  });
 });

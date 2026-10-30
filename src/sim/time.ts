@@ -35,7 +35,8 @@ export function seasonOfMonth(month: number): Season {
 /** Convertit un nombre d'heures de jeu écoulées en date de calendrier. */
 export function toGameDate(elapsedHours: number): GameDate {
   const absolute = START_OFFSET + Math.floor(elapsedHours);
-  const inYear = absolute % HOURS_PER_YEAR;
+  // Modulo positif : les fûts vieillis par l'outil de test ont une date de remplissage négative.
+  const inYear = ((absolute % HOURS_PER_YEAR) + HOURS_PER_YEAR) % HOURS_PER_YEAR;
   const month = Math.floor(inYear / HOURS_PER_MONTH) + 1;
   const day = Math.floor((inYear % HOURS_PER_MONTH) / TIME.hoursPerDay) + 1;
   const hour = inYear % TIME.hoursPerDay;

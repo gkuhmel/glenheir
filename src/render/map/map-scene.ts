@@ -17,7 +17,13 @@ import type { Scene } from '../stage';
 import { createRng } from '../../sim/rng';
 import { roomAt } from '../../sim/systems/building';
 import { Particles, runEmitters, STYLES, type Emitter } from '../particles';
-import { DISTILLERY, distilleryBounds, drawDistillery, drawWarehouse } from './buildings';
+import {
+  DISTILLERY,
+  distilleryBounds,
+  drawDistillery,
+  drawWarehouse,
+  warehouseFootprint,
+} from './buildings';
 import { drawField, fieldLook } from './fields';
 import { createGrid } from './grid';
 import { createGround } from './ground';
@@ -123,10 +129,16 @@ export class MapScene implements Scene {
         this.handlers.openDistillery();
         return;
       }
-      const area = this.terrain.warehouse;
-      const rect = { x: area.x * T, y: area.y * T, width: area.width * T, height: area.height * T };
       const warehouse = this.state.warehouses[0];
-      if (warehouse && contains(rect, point.x, point.y)) {
+      const area = warehouse && warehouseFootprint(warehouse, this.terrain.warehouse);
+      const rect = area && {
+        x: area.x * T,
+        y: area.y * T,
+        width: area.width * T,
+        // La porte et les fûts devant le pignon comptent aussi.
+        height: area.height * T + 16,
+      };
+      if (warehouse && rect && contains(rect, point.x, point.y)) {
         this.handlers.selectWarehouse(warehouse.id);
         return;
       }

@@ -35,12 +35,15 @@ export function createDrawer(onClose: () => void): Drawer {
       return open;
     },
     open(heading, content) {
+      // Nouveau contenu : on repart du haut ; simple rafraîchissement : on garde la position.
+      const fresh = !open || heading !== title.textContent;
       title.textContent = heading;
       body.replaceChildren(
         typeof content === 'string'
           ? Object.assign(document.createElement('p'), { textContent: content })
           : content,
       );
+      if (fresh) body.scrollTop = 0;
       open = true;
       element.classList.add('is-open');
       element.setAttribute('aria-hidden', 'false');

@@ -1,9 +1,10 @@
 import type { Game } from '../app/game';
-import { BARLEY_VARIETIES, GIN, MARKET, PRODUCTION, TERROIRS } from '../data/balance';
+import { BARLEY_VARIETIES, EXCISE, GIN, MARKET, PRODUCTION, TERROIRS } from '../data/balance';
 import { formatMoney, formatNumber, formatShortDuration, t, type MessageKey } from '../i18n';
 import type { Command } from '../sim/commands';
 import { PROFILE_AXES, type Profile } from '../sim/profile';
 import { canSowAt, growth, isRipe, seedCost, type BarleyVariety } from '../sim/systems/fields';
+import { exciseFor } from '../sim/systems/finance';
 import { barleyPrice, newMakeValue } from '../sim/systems/market';
 import {
   isDone,
@@ -30,10 +31,14 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text 
 const amount = (value: number, digits = 1) =>
   new Intl.NumberFormat('fr-FR', { maximumFractionDigits: digits }).format(value);
 
-/** Petites jauges des 6 axes aromatiques et de la qualité. */
-export function profileBars(profile: Profile): HTMLElement {
+/**
+ * Petites jauges des 6 axes aromatiques et de la qualité. Sans maître de chai,
+ * la qualité d'un fût n'est connue qu'en fourchette : on masque alors sa jauge.
+ */
+export function profileBars(profile: Profile, options: { quality?: boolean } = {}): HTMLElement {
   const box = el('div', 'profile-bars');
   for (const axis of PROFILE_AXES) {
+    if (axis === 'quality' && options.quality === false) continue;
     const row = el('div', 'profile-row');
     const bar = el('span', 'profile-bar');
     const fill = el('span', `profile-fill axis-${axis}`);
@@ -407,6 +412,42 @@ export class ProductionPanels {
     return { title: t('production.title'), body };
   }
 
+  /** Gin vendu aux cavistes : prix plein moins l'accise, volume plafonné chaque mois. */
+  private ginSection(): HTMLElement {
+    const { stocks, market } = this.game.state;
+    const left = Math.max(0, MARKET.retailMonthlyBottles - market.retailBottlesThisMonth);
+    const section = this.section(
+      t('market.ginTitle'),
+      t('market.ginDesc', {
+        price: formatMoney(GIN.price),
+        excise: formatMoney(EXCISE.perUkBottle),
+        left,
+      }),
+      this.stockLine('stock.gin', t('stock.bottles', { amount: formatNumber(stocks.gin) })),
+    );
+    const sellable = Math.min(stocks.gin, left);
+    if (sellable <= 0) {
+      section.append(
+        el('p', 'panel-desc', t(stocks.gin > 0 ? 'error.retailCapReached' : 'market.noGin')),
+      );
+      return section;
+    }
+    const net = (bottles: number) => bottles * GIN.price - exciseFor('retail', bottles);
+    const row = el('div', 'button-row');
+    for (const bottles of new Set([Math.min(50, sellable), sellable])) {
+      row.append(
+        this.button(t('market.sellGin', { bottles, amount: formatMoney(net(bottles)) }), () =>
+          this.run(
+            { type: 'sellGin', bottles },
+            t('market.sold', { amount: formatMoney(net(bottles)) }),
+          ),
+        ),
+      );
+    }
+    section.append(row);
+    return section;
+  }
+
   private barleySection(): HTMLElement {
     const price = barleyPrice(this.game.state.time.hour);
     const row = el('div', 'button-row');
@@ -461,7 +502,8 @@ export class ProductionPanels {
     } else {
       section.append(el('p', 'panel-desc', t('market.noNewMake')));
     }
-    body.append(section, this.barleySection(), el('p', 'panel-desc', t('market.later')));
+    body.append(section, this.ginSection(), this.barleySection());
+    body.append(el('p', 'panel-desc', t('market.later')));
     return { title: t('market.title'), body };
   }
 }

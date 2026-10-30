@@ -121,10 +121,14 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 | Sherry | 500 L | £900 | +épicé, +fruits secs, couleur sombre | Prix de vente +20 % |
 | Chêne neuf | 200 L | £400 | +boisé fort, mûrit 1,5× plus vite | Au-delà de 8 ans : −qualité (surboisé) |
 
-- Le chai a un nombre d'emplacements (40 au départ, extensible). Position basse = mûrit plus lentement mais +qualité ; position haute = l'inverse.
-- **Part des anges** : 2 %/an du volume (1,5 % à Islay).
-- La qualité monte selon une courbe propre à chaque fût, avec un plafond. Le maître de chai révèle la qualité réelle d'un fût (sinon, estimation floue ±15).
+- Le chai a un nombre d'emplacements (40 au départ, +20 par extension à £5 000, 4 extensions au plus, soit 120 places). Les places sont rangées par colonnes de 3 hauteurs. Position basse = mûrit plus lentement (×0,85) mais +4 de qualité ; milieu = référence ; position haute = plus vite (×1,2) mais −3 de qualité.
+- **Mise en fût** : on tape une place libre et on choisit le fût. Le new make est réduit à 63,5 % : un fût de 200 L contient 127 LPA, un sherry de 500 L 317,5 LPA. Un fût peut être rempli en partie, à condition d'en remplir au moins 20 %. Tous les types de fûts sont disponibles dès le début (le déblocage par jalons viendra avec la progression).
+- **Part des anges** : 2 %/an du volume (1,5 % à Islay), retirée heure par heure.
+- **Maturation** : l'effet du fût suit la courbe 1 − e^(−âge/τ), τ = 7 ans (ex-bourbon), 8 ans (sherry), 4 ans (chêne neuf) ; l'âge de maturation tient compte de la vitesse du fût et de la hauteur. La qualité gagnée plafonne à +32 (ex-bourbon), +34 (sherry), +28 (chêne neuf), plus le bonus de hauteur. Au-delà de 8 ans de maturation, le chêne neuf perd 4 points de qualité par an (surboisé).
+- Le maître de chai révèle la qualité réelle d'un fût ; sans lui, la fiche du fût affiche une fourchette ±15 (le décalage, tiré au remplissage, reste le même toute la vie du fût) et masque la jauge de qualité.
 - Un fût de 2e remplissage donne des effets réduits de moitié.
+- Un fût devient du whisky à 3 ans d'âge réel : un événement l'annonce et une plaque de laiton apparaît sur son fond.
+- **Atelier gin** : un lot par jour de 200 bouteilles, qui consomme 56 LPA de new make et £1,50 de botaniques par bouteille. Le gin se vend aux cavistes britanniques £28 la bouteille, moins £9 d'accise, dans la limite de 300 bouteilles par mois (plafond commun aux ventes chez les cavistes).
 
 ### Produits
 
