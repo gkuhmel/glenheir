@@ -5,11 +5,12 @@ import { baseProfile } from '../profile';
 import { createInitialState, type GameState } from '../state';
 import { runTicks } from '../tick';
 import { HOURS_PER_YEAR } from '../time';
-import { caskCapacityLpa, caskProfile, qualityEstimate, type Cask } from './warehouse';
+import { caskCapacityLpa, caskProfile, caskValue, qualityEstimate, type Cask } from './warehouse';
 
-/** Chai restauré, du new make en réserve. */
+/** Chai restauré et vidé des fûts hérités, du new make en réserve. */
 function cellar(newMake = 2_000): GameState {
   const state = createInitialState(5);
+  state.casks = [];
   state.finance.cash = 1_000_000;
   executeCommand(state, { type: 'chooseTerroir', terroir: 'speyside' });
   executeCommand(state, { type: 'restoreWarehouse', warehouseId: state.warehouses[0]!.id });
@@ -118,6 +119,7 @@ describe('vieillissement', () => {
 
   it('perd moins à Islay (part des anges de 1,5 %)', () => {
     const state = createInitialState(5);
+    state.casks = [];
     state.finance.cash = 100_000;
     executeCommand(state, { type: 'chooseTerroir', terroir: 'islay' });
     executeCommand(state, { type: 'restoreWarehouse', warehouseId: state.warehouses[0]!.id });
@@ -189,5 +191,84 @@ describe('gin', () => {
     runTicks(state, 30 * 24);
     expect(executeCommand(state, { type: 'sellGin', bottles: 100 }).ok).toBe(true);
     expect(MARKET.retailMonthlyBottles).toBe(300);
+  });
+});
+
+describe('fûts hérités du grand-oncle', () => {
+  const total = (state: GameState) =>
+    state.casks.reduce((sum, c) => sum + caskValue(c, state.time.hour), 0);
+
+  it('attendent dans un coin du chai en ruine, pour environ £30 000 chez le courtier', () => {
+    const state = createInitialState(5);
+    expect(state.casks).toHaveLength(5);
+    expect(state.casks.every((c) => c.inherited && c.warehouseId === state.warehouses[0]!.id)).toBe(
+      true,
+    );
+    expect(total(state)).toBeGreaterThan(28_000);
+    expect(total(state)).toBeLessThan(35_000);
+  });
+
+  it('fuient sous le toit percé, et prennent de la valeur une fois le chai restauré', () => {
+    const ruined = createInitialState(5);
+    const before = total(ruined);
+    const sherry = ruined.casks.find((c) => c.type === 'sherry')!;
+    const lpa = sherry.lpa;
+    runTicks(ruined, HOURS_PER_YEAR);
+    expect(sherry.lpa).toBeCloseTo(lpa * (1 - WAREHOUSE.ruinedAngelsShare), 1);
+    // En ruine, l'âge compense à peine la fuite.
+    expect(total(ruined) / before).toBeLessThan(1.01);
+
+    const restored = createInitialState(5);
+    restored.finance.cash = 100_000;
+    executeCommand(restored, {
+      type: 'restoreWarehouse',
+      warehouseId: restored.warehouses[0]!.id,
+    });
+    const start = total(restored);
+    runTicks(restored, HOURS_PER_YEAR);
+    // Restauré : +9 % d'âge, −2 % de part des anges.
+    expect(total(restored) / start).toBeCloseTo(1.09 * 0.98, 2);
+  });
+});
+
+describe('courtier en fûts', () => {
+  it('achète un fût par mois, sans accise, au prix de son âge', () => {
+    const state = createInitialState(5);
+    const [first, second] = state.casks;
+    const cash = state.finance.cash;
+    const value = caskValue(first!, state.time.hour);
+    expect(executeCommand(state, { type: 'sellCask', caskId: first!.id }).ok).toBe(true);
+    expect(state.finance.cash).toBeCloseTo(cash + value, 2);
+    expect(state.casks).toHaveLength(4);
+    expect(executeCommand(state, { type: 'sellCask', caskId: second!.id })).toEqual({
+      ok: false,
+      error: 'brokerCapReached',
+    });
+    // Le mois suivant, il revient.
+    runTicks(state, 24 * 30);
+    expect(executeCommand(state, { type: 'sellCask', caskId: second!.id }).ok).toBe(true);
+  });
+
+  it('ne prend pas un fût de moins de 3 ans', () => {
+    const state = cellar();
+    fill(state, 0);
+    const caskId = state.casks[0]!.id;
+    expect(executeCommand(state, { type: 'sellCask', caskId })).toEqual({
+      ok: false,
+      error: 'caskTooYoung',
+    });
+    executeCommand(state, { type: 'debugAgeCasks', years: 3 });
+    expect(executeCommand(state, { type: 'sellCask', caskId }).ok).toBe(true);
+  });
+
+  it('paie le LPA £27 à 8 ans, +9 % par an, et 20 % de plus pour le sherry', () => {
+    const state = createInitialState(5);
+    const bourbon = state.casks.find((c) => c.type === 'exBourbon')!;
+    expect(caskValue(bourbon, state.time.hour)).toBeCloseTo(
+      bourbon.lpa * MARKET.caskBroker.pricePerLpaAt8Years,
+      0,
+    );
+    const sherry = state.casks.find((c) => c.type === 'sherry')!;
+    expect(caskValue(sherry, state.time.hour)).toBeCloseTo(sherry.lpa * 27 * 1.09 ** 10 * 1.2, 0);
   });
 });

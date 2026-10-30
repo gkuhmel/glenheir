@@ -77,7 +77,13 @@ function stoneWall(
  * Le chai vu en coupe dans sa longueur : charpente, mur du fond noirci, fenêtres
  * hautes, porte ouverte sur le jour, rails de bois (dunnage) et sol en terre battue.
  */
-export function drawHall(rng: Rng, places: number, canExtend: boolean, width: number): Container {
+export function drawHall(
+  rng: Rng,
+  places: number,
+  canExtend: boolean,
+  width: number,
+  ruined = false,
+): Container {
   const cols = Math.ceil(places / WAREHOUSE.tiers);
   const container = new Container();
   const g = new Graphics();
@@ -185,10 +191,13 @@ export function drawHall(rng: Rng, places: number, canExtend: boolean, width: nu
     ).fill({ color: 0x3d3125, alpha: 0.9 });
   }
 
-  // Rails de bois sur lesquels reposent les fûts, étage par étage.
+  // Rails de bois sur lesquels reposent les fûts, étage par étage. En ruine,
+  // seuls ceux du coin où dorment les fûts du grand-oncle tiennent encore.
   const railLeft = columnX(0) - 8;
   for (let tier = 0; tier < WAREHOUSE.tiers; tier++) {
-    const right = columnX(Math.ceil((places - tier) / WAREHOUSE.tiers)) + 8;
+    const right = ruined
+      ? columnX(RUIN_RAIL_COLS) + 8
+      : columnX(Math.ceil((places - tier) / WAREHOUSE.tiers)) + 8;
     const y = RACK_FLOOR - 8 - tier * CHAI.tierHeight;
     g.rect(railLeft, y - 7, right - railLeft, 9).fill(C.rail);
     g.rect(railLeft, y - 7, right - railLeft, 2).fill(C.railTop);
@@ -196,7 +205,92 @@ export function drawHall(rng: Rng, places: number, canExtend: boolean, width: nu
   }
 
   if (canExtend) drawExtensionSite(g, container, cols);
+  if (ruined) drawRuin(g, rng, width);
   return container;
+}
+
+/** Colonnes de rails encore debout dans le chai en ruine. */
+const RUIN_RAIL_COLS = 3;
+
+/** Abscisses des trous du toit d'un chai en ruine (le jour y entre par puits obliques). */
+export function ruinHoles(width: number): number[] {
+  const xs: number[] = [];
+  for (let i = 0, x = 330; x < width - 120; i++, x += 420) xs.push(x + ((i * 137) % 90) - 45);
+  return xs;
+}
+
+/** Toit percé, chevrons cassés, gravats, ardoises tombées, lierre et flaques. */
+function drawRuin(g: Graphics, rng: Rng, width: number): void {
+  const roofTop = HALL_TOP - 92;
+  for (const x of ruinHoles(width)) {
+    const w = rng.range(70, 110);
+    // Le ciel à travers le toit et le plafond.
+    const pts: number[] = [];
+    const steps = 9;
+    for (let k = 0; k <= steps; k++)
+      pts.push(x - w / 2 + (w * k) / steps, roofTop + 10 + rng.range(0, 18));
+    for (let k = steps; k >= 0; k--)
+      pts.push(x - w / 2 + (w * k) / steps + rng.range(-6, 6), WALL_TOP + 8 + rng.range(-10, 8));
+    g.poly(pts).fill(INTERIOR.sky[1]!);
+    // Chevrons brisés qui pendent dans le trou.
+    for (let k = 0; k < 3; k++) {
+      const bx = x - w / 3 + k * (w / 3) + rng.range(-6, 6);
+      g.poly([
+        bx,
+        HALL_TOP - 4,
+        bx + 7,
+        HALL_TOP - 4,
+        bx + 18,
+        HALL_TOP + 50,
+        bx + 11,
+        HALL_TOP + 53,
+      ]).fill(C.beam);
+    }
+    // Lierre qui descend du trou.
+    for (let k = 0; k < 4; k++) {
+      let vx = x + rng.range(-w / 2, w / 2);
+      let vy = WALL_TOP;
+      const len = rng.range(60, 160);
+      for (let d = 0; d < len; d += 9) {
+        vx += rng.range(-4, 4);
+        vy += 9;
+        g.circle(vx, vy, rng.range(3, 5)).fill(rng.pick(INTERIOR.ivy));
+      }
+    }
+    // Gravats et ardoises tombées sous le trou, flaque de pluie.
+    g.ellipse(x + 30, RACK_FLOOR + 42, 70, 9).fill({ color: 0x8fa4ad, alpha: 0.35 });
+    for (let k = 0; k < 14; k++) {
+      g.roundRect(
+        x + rng.range(-60, 60),
+        RACK_FLOOR - rng.range(0, 22) + 6,
+        rng.range(10, 22),
+        rng.range(6, 12),
+        3,
+      ).fill(rng.chance(0.5) ? rng.pick(C.cutStone) : INTERIOR.slate);
+    }
+  }
+  // Rails tombés au sol, un peu partout.
+  for (let x = columnX(RUIN_RAIL_COLS) + 60; x < width - 120; x += rng.range(140, 260)) {
+    const len = rng.range(60, 140);
+    const tilt = rng.range(-14, 14);
+    g.poly([
+      x,
+      RACK_FLOOR + 4,
+      x + len,
+      RACK_FLOOR + 4 + tilt,
+      x + len,
+      RACK_FLOOR + 12 + tilt,
+      x,
+      RACK_FLOOR + 12,
+    ]).fill(C.rail);
+  }
+  // Toiles d'araignée dans les angles de la charpente.
+  for (let x = 40; x < width; x += rng.range(220, 380)) {
+    for (let k = 0; k < 4; k++)
+      g.moveTo(x, WALL_TOP + 18).lineTo(x + 30 - k * 8, WALL_TOP + 18 + k * 10 + 10);
+    g.arc(x, WALL_TOP + 18, 22, 0.2, 1.4);
+    g.stroke({ width: 1, color: INTERIOR.cobweb, alpha: 0.35 });
+  }
 }
 
 /** Ciel du pays, collines, et le long toit d'ardoise du chai avec ses lanternons. */

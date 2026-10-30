@@ -175,6 +175,19 @@ describe('marché', () => {
     });
   });
 
+  it('vend le malt à la distillerie voisine, au prix fixe de la tonne', () => {
+    const state = createInitialState(1);
+    state.stocks.malt.amount = 3.2;
+    expect(executeCommand(state, { type: 'sellMalt', tonnes: 3.2 }).ok).toBe(true);
+    expect(state.finance.cash).toBeCloseTo(50_000 + 3.2 * MARKET.maltPricePerTonne, 2);
+    expect(state.stocks.malt.amount).toBeCloseTo(0, 6);
+    expect(state.journal.entries.at(-1)).toMatchObject({ product: 'malt', channel: 'bulk' });
+    expect(executeCommand(state, { type: 'sellMalt', tonnes: 1 })).toEqual({
+      ok: false,
+      error: 'notEnoughStock',
+    });
+  });
+
   it('achète l’orge plus cher au printemps qu’à l’automne', () => {
     const spring = createInitialState(1);
     executeCommand(spring, { type: 'buyBarley', tonnes: 10 });

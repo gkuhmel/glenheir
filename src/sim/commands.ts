@@ -7,7 +7,14 @@ import type { GameState, Terroir } from './state';
 import { canSowAt, harvest, isRipe, seedCost, sow, type BarleyVariety } from './systems/fields';
 import { exciseFor } from './systems/finance';
 import { barleyPrice, newMakeValue } from './systems/market';
-import { ageAllCasks, caskCapacityLpa, extensionsOf, type CaskType } from './systems/warehouse';
+import {
+  ageAllCasks,
+  ageYears,
+  caskCapacityLpa,
+  caskValue,
+  extensionsOf,
+  type CaskType,
+} from './systems/warehouse';
 import { HOURS_PER_YEAR } from './time';
 import {
   syncMachines,
@@ -42,6 +49,8 @@ export type Command =
   | { type: 'fillCask'; warehouseId: number; place: number; caskType: CaskType }
   | { type: 'extendWarehouse'; warehouseId: number }
   | { type: 'sellGin'; bottles: number }
+  | { type: 'sellCask'; caskId: number }
+  | { type: 'sellMalt'; tonnes: number }
   | { type: 'debugAgeCasks'; years: number }
   | { type: 'debugAddCash' };
 
@@ -73,7 +82,10 @@ export type CommandError =
   | 'placeTaken'
   | 'placeInvalid'
   | 'warehouseFull'
-  | 'retailCapReached';
+  | 'retailCapReached'
+  | 'caskNotFound'
+  | 'caskTooYoung'
+  | 'brokerCapReached';
 
 export type CommandResult = { ok: true; events: SimEvent[] } | { ok: false; error: CommandError };
 
@@ -294,6 +306,35 @@ function extendWarehouse(state: GameState, warehouseId: number): CommandResult {
   return ok(state, [{ type: 'warehouseExtended', hour: state.time.hour, warehouseId }]);
 }
 
+/** Fût entier vendu au courtier : un par mois, whisky de 3 ans et plus, sans accise. */
+function sellCask(state: GameState, caskId: number): CommandResult {
+  const index = state.casks.findIndex((c) => c.id === caskId);
+  const cask = state.casks[index];
+  if (!cask) return fail('caskNotFound');
+  if (ageYears(cask, state.time.hour) < MARKET.caskBroker.minYears) return fail('caskTooYoung');
+  if (state.market.casksSoldThisMonth >= MARKET.caskBroker.casksPerMonth)
+    return fail('brokerCapReached');
+  recordTransaction(state, caskValue(cask, state.time.hour), 'sales', {
+    product: 'cask',
+    channel: 'bulk',
+  });
+  state.casks.splice(index, 1);
+  state.market.casksSoldThisMonth += 1;
+  return ok(state, [{ type: 'traded', hour: state.time.hour }]);
+}
+
+/** Malt vendu à la distillerie voisine, au prix fixe de la tonne. */
+function sellMalt(state: GameState, tonnes: number): CommandResult {
+  if (!Number.isFinite(tonnes) || tonnes <= 0) return fail('amountInvalid');
+  if (tonnes > state.stocks.malt.amount + 1e-6) return fail('notEnoughStock');
+  const sold = takeFromLot(state.stocks.malt, tonnes);
+  recordTransaction(state, roundMoney(sold.amount * MARKET.maltPricePerTonne), 'sales', {
+    product: 'malt',
+    channel: 'bulk',
+  });
+  return ok(state, [{ type: 'traded', hour: state.time.hour }]);
+}
+
 /** Gin vendu aux cavistes britanniques : prix plein, accise due, volume plafonné par mois. */
 function sellGin(state: GameState, bottles: number): CommandResult {
   if (!Number.isInteger(bottles) || bottles <= 0) return fail('amountInvalid');
@@ -378,6 +419,10 @@ export function executeCommand(state: GameState, command: Command): CommandResul
       return extendWarehouse(state, command.warehouseId);
     case 'sellGin':
       return sellGin(state, command.bottles);
+    case 'sellCask':
+      return sellCask(state, command.caskId);
+    case 'sellMalt':
+      return sellMalt(state, command.tonnes);
     case 'debugAgeCasks':
       ageAllCasks(state, Math.round(command.years * HOURS_PER_YEAR));
       return ok(state);

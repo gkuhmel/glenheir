@@ -93,6 +93,8 @@ export const ROOM_COSTS = {
 /** Chais : bâtiments séparés sur la carte. */
 export const WAREHOUSE = {
   restoreCost: 6_000,
+  /** Sous un toit percé, la part des anges monte à 8 %/an (au lieu de 2 %). */
+  ruinedAngelsShare: 0.08,
   startPlaces: 40,
   /** Extension : +20 places, le bâtiment s'allonge. */
   extensionPlaces: 20,
@@ -111,6 +113,8 @@ export const CASKS = {
   /** Un fût de 2e remplissage donne des effets réduits de moitié. */
   refillEffect: 0.5,
   legalAgeYears: 3,
+  /** Part des anges supposée des fûts hérités avant le début de la partie. */
+  inheritedAngelsShare: 0.02,
   /** Sans maître de chai, la qualité n'est connue qu'à ±15 près. */
   estimateSpread: 15,
   types: {
@@ -152,6 +156,19 @@ export const CASKS = {
     { speed: 1.2, quality: -3 },
   ],
 } as const;
+
+/**
+ * Fûts oubliés par le grand-oncle dans un coin du chai en ruine (environ £31 600
+ * au total chez le courtier au début de la partie).
+ */
+export const INHERITED_CASKS = [
+  // `hint` : décalage fixe de l'estimation de qualité (la partie raconte toujours la même histoire).
+  { type: 'exBourbon', years: 8, place: 0, hint: 6 },
+  { type: 'exBourbon', years: 10, place: 1, hint: -4 },
+  { type: 'exBourbon', years: 12, place: 3, hint: 9 },
+  { type: 'exBourbon', years: 15, place: 4, hint: -7 },
+  { type: 'sherry', years: 18, place: 6, hint: 3 },
+] as const;
 
 /** Gin, produit dans l'atelier gin à partir du new make pendant que le whisky vieillit. */
 export const GIN = {
@@ -227,6 +244,13 @@ export const MARKET = {
   newMakePricePerLpa: 4,
   /** Cavistes britanniques : volume plafonné chaque mois (bouteilles). */
   retailMonthlyBottles: 300,
+  /** Une distillerie voisine achète le malt à prix fixe, sans limite. */
+  maltPricePerTonne: 500,
+  /**
+   * Courtier en fûts : il achète un fût entier (sans accise ni mise en bouteille),
+   * au prix du LPA selon l'âge du whisky : £27 à 8 ans, +9 % par année d'âge.
+   */
+  caskBroker: { pricePerLpaAt8Years: 27, growthPerYear: 0.09, minYears: 3, casksPerMonth: 1 },
 } as const;
 
 export const PRODUCTION = {

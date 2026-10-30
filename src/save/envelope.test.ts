@@ -39,7 +39,7 @@ describe('sauvegarde', () => {
   });
 });
 
-describe('migrations v1 → v5', () => {
+describe('migrations v1 → v6', () => {
   it('reprend une partie de l’étape 1 sans la perdre', () => {
     const v1 = JSON.stringify({
       version: 1,
@@ -57,7 +57,12 @@ describe('migrations v1 → v5', () => {
     expect(state.terroir).toBe('speyside');
     expect(state.terroirChosen).toBe(true);
     expect(state.fields).toHaveLength(2);
-    expect(state.casks).toEqual([]);
+    // Les fûts du grand-oncle arrivent aussi dans les parties en cours.
+    expect(state.casks).toHaveLength(5);
+    expect(state.casks.every((c) => c.inherited && c.warehouseId === state.warehouses[0]!.id)).toBe(
+      true,
+    );
+    expect(state.market.casksSoldThisMonth).toBe(0);
     expect(state.stocks.gin).toBe(0);
     expect(state.machines.map((m) => m.kind).sort()).toEqual([
       'distillation',
@@ -65,9 +70,13 @@ describe('migrations v1 → v5', () => {
       'malting',
       'mashing',
     ]);
-    const ids = [...state.staff, ...state.building.rooms, ...state.warehouses, ...state.fields].map(
-      (x) => x.id,
-    );
+    const ids = [
+      ...state.staff,
+      ...state.building.rooms,
+      ...state.warehouses,
+      ...state.fields,
+      ...state.casks,
+    ].map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(state.nextId).toBe(Math.max(...ids) + 1);
   });

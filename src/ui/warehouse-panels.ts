@@ -1,11 +1,12 @@
 import type { Game } from '../app/game';
-import { CASKS, WAREHOUSE } from '../data/balance';
+import { CASKS, MARKET, WAREHOUSE } from '../data/balance';
 import { formatMoney, t, type MessageKey } from '../i18n';
 import type { Command } from '../sim/commands';
 import {
   ageYears,
   caskCapacityLpa,
   caskProfile,
+  caskValue,
   columnOf,
   extensionsOf,
   qualityEstimate,
@@ -94,7 +95,10 @@ export class WarehousePanels {
   forPlace(warehouseId: number, place: number): PanelContent | null {
     const state = this.game.state;
     const cask = state.casks.find((c) => c.warehouseId === warehouseId && c.place === place);
-    return cask ? this.forCask(cask) : this.forEmptyPlace(warehouseId, place);
+    if (cask) return this.forCask(cask);
+    // Fût vendu dans un chai en ruine : rien à remplir ici, le tiroir se ferme.
+    if (state.warehouses.find((w) => w.id === warehouseId)?.ruined) return null;
+    return this.forEmptyPlace(warehouseId, place);
   }
 
   private forEmptyPlace(warehouseId: number, place: number): PanelContent | null {
@@ -153,7 +157,10 @@ export class WarehousePanels {
     body.append(
       this.line(t('cask.type'), `${t(`cask.type.${cask.type}` as MessageKey)} · ${fill}`),
       this.line(t('cask.age'), formatAge(age)),
-      this.line(t('cask.filledOn'), formatGameDate(cask.filledHour)),
+      this.line(
+        t('cask.filledOn'),
+        cask.inherited ? t('cask.inherited') : formatGameDate(cask.filledHour),
+      ),
       this.line(
         t('cask.volume'),
         t('cask.volumeValue', { lpa: lpa(cask.lpa), lost: lpa(cask.initialLpa - cask.lpa) }),
@@ -179,8 +186,41 @@ export class WarehousePanels {
       el('p', 'panel-status', t('cask.quality', estimate)),
       el('p', 'panel-desc', t('cask.qualityHint')),
     );
-    body.append(profile);
+    body.append(profile, this.brokerSection(cask));
     return { title: t('cask.title', { id: cask.id }), body };
+  }
+
+  /** Vente du fût entier au courtier : un par mois, whisky de 3 ans et plus. */
+  private brokerSection(cask: Cask): HTMLElement {
+    const state = this.game.state;
+    const broker = MARKET.caskBroker;
+    const value = caskValue(cask, state.time.hour);
+    const tooYoung = ageYears(cask, state.time.hour) < broker.minYears;
+    const capped = state.market.casksSoldThisMonth >= broker.casksPerMonth;
+    const warehouse = state.warehouses.find((w) => w.id === cask.warehouseId);
+    const section = this.section(t('broker.title'), el('p', 'panel-desc', t('broker.desc')));
+    if (warehouse?.ruined)
+      section.append(
+        el(
+          'p',
+          'panel-status warning',
+          t('broker.leaking', { share: Math.round(WAREHOUSE.ruinedAngelsShare * 100) }),
+        ),
+      );
+    section.append(
+      this.button(
+        t('broker.sell', { amount: formatMoney(value) }),
+        () =>
+          this.run(
+            { type: 'sellCask', caskId: cask.id },
+            t('broker.sold', { amount: formatMoney(value) }),
+          ),
+        tooYoung || capped,
+      ),
+    );
+    if (tooYoung) section.append(el('p', 'panel-desc', t('error.caskTooYoung')));
+    else if (capped) section.append(el('p', 'panel-desc', t('error.brokerCapReached')));
+    return section;
   }
 
   /** Chantier au bout du chai : +20 places. */
@@ -201,6 +241,32 @@ export class WarehousePanels {
     return { title: t('warehouse.extendTitle'), body };
   }
 
+  private restoreButton(warehouseId: number): HTMLButtonElement {
+    return this.button(
+      t('warehouse.restore', { cost: formatMoney(WAREHOUSE.restoreCost) }),
+      () => this.run({ type: 'restoreWarehouse', warehouseId }, t('warehouse.restored')),
+      WAREHOUSE.restoreCost > this.game.state.finance.cash,
+    );
+  }
+
+  /** Chai en ruine touché ailleurs que sur un fût : sa restauration. */
+  forRuin(warehouseId: number): PanelContent | null {
+    const warehouse = this.game.state.warehouses.find((w) => w.id === warehouseId);
+    if (!warehouse?.ruined) return null;
+    const body = el('div', 'panel');
+    body.append(
+      el('p', 'panel-desc', t('warehouse.ruinedDesc', { places: warehouse.places })),
+      el('p', 'panel-status warning', t('chai.ruined')),
+      this.restoreButton(warehouseId),
+      el(
+        'p',
+        'panel-cash',
+        t('building.cash', { amount: formatMoney(this.game.state.finance.cash) }),
+      ),
+    );
+    return { title: this.warehouseTitle(warehouseId), body };
+  }
+
   private extendButton(warehouseId: number): HTMLElement {
     const warehouse = this.game.state.warehouses.find((w) => w.id === warehouseId)!;
     if (extensionsOf(warehouse) >= WAREHOUSE.maxExtensions)
@@ -216,9 +282,7 @@ export class WarehousePanels {
   overview(): PanelContent {
     const state = this.game.state;
     const body = el('div', 'panel');
-    const open = state.warehouses.filter((w) => !w.ruined);
-    if (open.length === 0) body.append(el('p', 'panel-desc', t('chai.none')));
-    for (const warehouse of open) {
+    for (const warehouse of state.warehouses) {
       const casks = state.casks
         .filter((c) => c.warehouseId === warehouse.id)
         .sort((a, b) => a.filledHour - b.filledHour);
@@ -232,10 +296,16 @@ export class WarehousePanels {
       );
       const row = el('div', 'button-row');
       row.append(this.button(t('warehouse.enter'), () => this.actions.enter(warehouse.id)));
-      const extend = this.extendButton(warehouse.id);
-      if (extend instanceof HTMLButtonElement) row.append(extend);
-      section.append(row);
-      if (extensionsOf(warehouse) >= WAREHOUSE.maxExtensions) section.append(extend);
+      if (warehouse.ruined) {
+        section.querySelector('h3')!.after(el('p', 'panel-status warning', t('chai.ruined')));
+        row.append(this.restoreButton(warehouse.id));
+        section.append(row);
+      } else {
+        const extend = this.extendButton(warehouse.id);
+        if (extend instanceof HTMLButtonElement) row.append(extend);
+        section.append(row);
+        if (extensionsOf(warehouse) >= WAREHOUSE.maxExtensions) section.append(extend);
+      }
       if (casks.length === 0) section.append(el('p', 'panel-desc', t('chai.empty')));
       for (const cask of casks) {
         const estimate = qualityEstimate(cask);

@@ -38,9 +38,13 @@ describe('distillerie de départ', () => {
 
   it('donne des identifiants uniques', () => {
     const state = createInitialState(1);
-    const ids = [...state.staff, ...state.building.rooms, ...state.warehouses, ...state.fields].map(
-      (x) => x.id,
-    );
+    const ids = [
+      ...state.staff,
+      ...state.building.rooms,
+      ...state.warehouses,
+      ...state.fields,
+      ...state.casks,
+    ].map((x) => x.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(state.nextId).toBe(Math.max(...ids) + 1);
   });

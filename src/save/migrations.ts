@@ -3,12 +3,13 @@ import type { GameState } from '../sim/state';
 import { createStartingBuilding, createStartingWarehouse } from '../sim/systems/building';
 import { createStartingFields } from '../sim/systems/fields';
 import { syncMachines } from '../sim/systems/production';
+import { createInheritedCasks } from '../sim/systems/warehouse';
 
 /** Une migration transforme l'état sauvegardé de la version N vers N + 1. */
 export type Migration = (state: unknown) => unknown;
 
 /** Version actuelle du format de sauvegarde. */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /**
  * Migrations indexées par version de départ : `migrations[1]` transforme un
@@ -64,8 +65,15 @@ export const migrations: Record<number, Migration> = {
       stocks: { ...old.stocks, gin: 0 },
       casks: [],
       market: { retailBottlesThisMonth: 0 },
-    } as GameState;
+    } as unknown as GameState;
     syncMachines(next);
+    return next;
+  },
+  // v5 → v6 : fûts hérités du grand-oncle (rangés là où il reste de la place), courtier.
+  5: (state) => {
+    const old = state as GameState;
+    const next = { ...old, market: { ...old.market, casksSoldThisMonth: 0 } };
+    next.casks = [...old.casks, ...createInheritedCasks(next)];
     return next;
   },
 };

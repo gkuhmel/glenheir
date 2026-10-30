@@ -61,6 +61,7 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
   if (date.day === 1) {
     events.push({ type: 'monthStarted', hour, month: date.month });
     state.market.retailBottlesThisMonth = 0;
+    state.market.casksSoldThisMonth = 0;
     events.push(...runMonthlyFinance(state));
   }
   return events;

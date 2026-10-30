@@ -127,6 +127,8 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 - **Maturation** : l'effet du fût suit la courbe 1 − e^(−âge/τ), τ = 7 ans (ex-bourbon), 8 ans (sherry), 4 ans (chêne neuf) ; l'âge de maturation tient compte de la vitesse du fût et de la hauteur. La qualité gagnée plafonne à +32 (ex-bourbon), +34 (sherry), +28 (chêne neuf), plus le bonus de hauteur. Au-delà de 8 ans de maturation, le chêne neuf perd 4 points de qualité par an (surboisé).
 - Le maître de chai révèle la qualité réelle d'un fût ; sans lui, la fiche du fût affiche une fourchette ±15 (le décalage, tiré au remplissage, reste le même toute la vie du fût) et masque la jauge de qualité.
 - Un fût de 2e remplissage donne des effets réduits de moitié.
+- **Fûts hérités** : le grand-oncle a laissé 5 vieux fûts dans un coin du chai en ruine (ex-bourbon de 8, 10, 12 et 15 ans, sherry de 18 ans), soit environ £31 600 chez le courtier au début de la partie. On peut entrer dans le chai en ruine pour les voir et les vendre. Sous le toit percé, la part des anges monte à 8 %/an : l'âge compense à peine la fuite. Une fois le chai restauré, un fût gagne environ 7 % de valeur par an (+9 % d'âge, −2 % de part des anges).
+- **Courtier en fûts** : il rachète un fût entier, sans accise ni mise en bouteille, au prix de £27 le LPA à 8 ans, +9 % par année d'âge (en plus ou en moins), × le facteur du fût (sherry ×1,2). Il n'achète que du whisky (3 ans et plus) et **un seul fût par mois** : la vente des fûts hérités s'étale sur les premiers mois.
 - Un fût devient du whisky à 3 ans d'âge réel : un événement l'annonce et une plaque de laiton apparaît sur son fond.
 - **Atelier gin** : un lot par jour de 200 bouteilles, qui consomme 56 LPA de new make et £1,50 de botaniques par bouteille. Le gin se vend aux cavistes britanniques £28 la bouteille, moins £9 d'accise, dans la limite de 300 bouteilles par mois (plafond commun aux ventes chez les cavistes).
 
@@ -135,7 +137,9 @@ Chaque lot d'alcool porte un **profil** de 6 axes notés 0-100 : *fruité, flora
 | Produit | Disponible | Prix de base | Rôle |
 | --- | --- | --- | --- |
 | Gin | Dès l'alambic restauré + atelier botaniques | £28/bouteille | Trésorerie des débuts, faible renommée |
+| Malt (vrac) | Dès la malterie restaurée | £500/t, vendu à une distillerie voisine | Premier revenu de la chaîne |
 | New make (vrac) | Dès la 1re distillation | £4/LPA, vendu aux assembleurs | Trésorerie, aucune renommée |
+| Fût entier | Fût de 3 ans et plus | Courtier : £27/LPA à 8 ans, +9 %/an | Un par mois ; fûts hérités du grand-oncle |
 | Single malt 3 ans | Après 3 ans de fût | £35/bouteille | Premier vrai produit |
 | Single malt 8 / 12 / 18 ans | Avec l'âge | £55 / £80 / £180 | Renommée et marges |
 
@@ -189,7 +193,7 @@ Le prix final = prix de base × facteur qualité × facteur renommée × facteur
 
 ### Coûts de restauration
 
-La restauration des ruines coûte environ £50 000 avant le premier fût rempli : la trésorerie de départ ne suffit pas, le prêt devient un vrai choix dès les premières heures.
+La restauration des ruines coûte environ £50 000 avant le premier fût rempli : la trésorerie de départ y passe presque entièrement. Les fûts hérités (environ £31 600, vendus au rythme d'un par mois) et la vente du malt dès la malterie restaurée évitent que l'emprunt soit obligatoire ; le prêt reste un choix pour aller plus vite.
 
 | Salle ou bâtiment | Coût | Débloque |
 | --- | --- | --- |
@@ -255,7 +259,7 @@ La partie se gagne en devenant **n°1 sur deux axes à la fois** : renommée et 
 
 | # | Jalon | Condition | Débloque |
 | --- | --- | --- | --- |
-| 1 | La ruine | Début de partie | 2 parcelles, distillerie et chai en ruine, 1 ouvrier |
+| 1 | La ruine | Début de partie | 2 parcelles, distillerie et chai en ruine, 5 fûts hérités, 1 ouvrier |
 | 2 | Premier brassin | Malterie et brasserie restaurées | Cuves de fermentation, recrutement |
 | 3 | L'alambic chante | Première distillation | Vente de new make, atelier gin |
 | 4 | Le chai | 10 fûts remplis | Maître de chai, choix des types de fûts |

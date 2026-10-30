@@ -412,6 +412,43 @@ export class ProductionPanels {
     return { title: t('production.title'), body };
   }
 
+  /** Malt vendu à la distillerie voisine : de l'argent dès la malterie restaurée. */
+  private maltSection(): HTMLElement {
+    const { malt } = this.game.state.stocks;
+    const value = (tonnes: number) => Math.round(tonnes * MARKET.maltPricePerTonne * 100) / 100;
+    const section = this.section(
+      t('market.maltTitle'),
+      t('market.maltDesc', { price: formatMoney(MARKET.maltPricePerTonne) }),
+      this.stockLine('stock.malt', t('stock.tonnes', { amount: amount(malt.amount) })),
+    );
+    if (malt.amount <= 0) {
+      section.append(el('p', 'panel-desc', t('market.noMalt')));
+      return section;
+    }
+    const row = el('div', 'button-row');
+    for (const tonnes of new Set([Math.min(1, malt.amount), malt.amount])) {
+      row.append(
+        this.button(
+          t('market.sellMalt', { tonnes: amount(tonnes), amount: formatMoney(value(tonnes)) }),
+          () =>
+            this.run(
+              { type: 'sellMalt', tonnes },
+              t('market.sold', { amount: formatMoney(value(tonnes)) }),
+            ),
+        ),
+      );
+    }
+    section.append(row);
+    return section;
+  }
+
+  /** Rappel du courtier en fûts (la vente se fait depuis la fiche du fût). */
+  private brokerLine(): HTMLElement {
+    const broker = MARKET.caskBroker;
+    const left = Math.max(0, broker.casksPerMonth - this.game.state.market.casksSoldThisMonth);
+    return this.section(t('market.brokerTitle'), t('market.brokerDesc', { left }));
+  }
+
   /** Gin vendu aux cavistes : prix plein moins l'accise, volume plafonné chaque mois. */
   private ginSection(): HTMLElement {
     const { stocks, market } = this.game.state;
@@ -502,7 +539,8 @@ export class ProductionPanels {
     } else {
       section.append(el('p', 'panel-desc', t('market.noNewMake')));
     }
-    body.append(section, this.ginSection(), this.barleySection());
+    body.append(section, this.maltSection(), this.ginSection(), this.brokerLine());
+    body.append(this.barleySection());
     body.append(el('p', 'panel-desc', t('market.later')));
     return { title: t('market.title'), body };
   }

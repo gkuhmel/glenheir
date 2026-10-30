@@ -1,4 +1,12 @@
-import { CASKS, TERROIRS, WAREHOUSE } from '../../data/balance';
+import {
+  BASE_PROFILE,
+  CASKS,
+  INHERITED_CASKS,
+  MARKET,
+  TERROIRS,
+  WAREHOUSE,
+} from '../../data/balance';
+import { roundMoney } from '../journal';
 import { applyModifier, PROFILE_AXES, type Profile } from '../profile';
 import type { GameState } from '../state';
 import type { SimEvent } from '../tick';
@@ -26,6 +34,8 @@ export interface Cask {
   spirit: Profile;
   /** Décalage caché de l'estimation de qualité, sans maître de chai. */
   hint: number;
+  /** Fût laissé par le grand-oncle (rempli avant le début de la partie). */
+  inherited?: true;
 }
 
 export const tierOf = (place: number): number => place % WAREHOUSE.tiers;
@@ -83,15 +93,19 @@ export function qualityEstimate(cask: Cask): { low: number; high: number } {
   };
 }
 
+/** Part des anges annuelle d'un fût : bien plus forte sous le toit percé d'un chai en ruine. */
+export function angelsShareOf(state: GameState, cask: Cask): number {
+  const warehouse = state.warehouses.find((w) => w.id === cask.warehouseId);
+  return warehouse?.ruined ? WAREHOUSE.ruinedAngelsShare : TERROIRS[state.terroir].angelsShare;
+}
+
 /** Une heure au chai : maturation selon le fût et la hauteur, part des anges, anniversaires. */
 export function runWarehouses(state: GameState): SimEvent[] {
   const events: SimEvent[] = [];
-  const angels = TERROIRS[state.terroir].angelsShare;
-  const keep = (1 - angels) ** (1 / HOURS_PER_YEAR);
   const legalHours = CASKS.legalAgeYears * HOURS_PER_YEAR;
   for (const cask of state.casks) {
     cask.maturedHours += CASKS.types[cask.type].speed * CASKS.tiers[tierOf(cask.place)]!.speed;
-    cask.lpa *= keep;
+    cask.lpa *= (1 - angelsShareOf(state, cask)) ** (1 / HOURS_PER_YEAR);
     if (state.time.hour - cask.filledHour === legalHours) {
       events.push({
         type: 'caskMatured',
@@ -106,11 +120,51 @@ export function runWarehouses(state: GameState): SimEvent[] {
 
 /** Fait vieillir tous les fûts d'un coup (outil de test). */
 export function ageAllCasks(state: GameState, hours: number): void {
-  const keep = (1 - TERROIRS[state.terroir].angelsShare) ** (hours / HOURS_PER_YEAR);
   for (const cask of state.casks) {
     cask.maturedHours +=
       hours * CASKS.types[cask.type].speed * CASKS.tiers[tierOf(cask.place)]!.speed;
     cask.filledHour -= hours;
-    cask.lpa *= keep;
+    cask.lpa *= (1 - angelsShareOf(state, cask)) ** (hours / HOURS_PER_YEAR);
   }
+}
+
+/**
+ * Prix proposé par le courtier pour un fût entier : LPA restants × prix du LPA à
+ * cet âge × facteur du fût. Il n'achète que du whisky (3 ans et plus).
+ */
+export function caskValue(cask: Cask, hour: number): number {
+  const broker = MARKET.caskBroker;
+  const perLpa =
+    broker.pricePerLpaAt8Years * (1 + broker.growthPerYear) ** (ageYears(cask, hour) - 8);
+  return roundMoney(cask.lpa * perLpa * CASKS.types[cask.type].priceFactor);
+}
+
+/**
+ * Fûts du grand-oncle, rangés dans un coin du premier chai (les places déjà
+ * prises sont sautées). Ils ont vieilli normalement avant le début de la partie.
+ */
+export function createInheritedCasks(state: GameState): Cask[] {
+  const warehouse = state.warehouses[0];
+  if (!warehouse) return [];
+  const casks: Cask[] = [];
+  for (const spec of INHERITED_CASKS) {
+    if (state.casks.some((c) => c.warehouseId === warehouse.id && c.place === spec.place)) continue;
+    const hours = spec.years * HOURS_PER_YEAR;
+    const initialLpa = caskCapacityLpa(spec.type);
+    casks.push({
+      id: state.nextId++,
+      warehouseId: warehouse.id,
+      place: spec.place,
+      type: spec.type,
+      fill: 1,
+      filledHour: state.time.hour - hours,
+      maturedHours: hours * CASKS.types[spec.type].speed * CASKS.tiers[tierOf(spec.place)]!.speed,
+      lpa: Math.round(initialLpa * (1 - CASKS.inheritedAngelsShare) ** spec.years * 10) / 10,
+      initialLpa,
+      spirit: { ...BASE_PROFILE },
+      hint: spec.hint,
+      inherited: true,
+    });
+  }
+  return casks;
 }

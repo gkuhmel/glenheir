@@ -20,6 +20,7 @@ import {
   drawCask,
   drawEmptyPlace,
   drawHall,
+  ruinHoles,
   extensionSite,
   windowXs,
 } from './drawing';
@@ -36,7 +37,11 @@ import {
   worldWidth,
 } from './layout';
 
-export type WarehouseSelection = { kind: 'place'; place: number } | { kind: 'extension' };
+export type WarehouseSelection =
+  | { kind: 'place'; place: number }
+  | { kind: 'extension' }
+  /** Chai en ruine touché ailleurs que sur un fût : sa restauration. */
+  | { kind: 'ruin' };
 
 export interface WarehouseHandlers {
   select(warehouseId: number, selection: WarehouseSelection | null): void;
@@ -79,6 +84,7 @@ export class WarehouseScene implements Scene {
   private warehouseId: number | null = null;
   private places: number = WAREHOUSE.startPlaces;
   private canExtend = false;
+  private ruined = false;
   private filled: Cask[] = [];
   private world_: Size = { width: 1, height: WORLD_HEIGHT };
   private camera: Camera = { x: 0, y: 0, zoom: 1 };
@@ -138,6 +144,7 @@ export class WarehouseScene implements Scene {
     this.signature = signature;
     this.filled = casks;
     this.places = warehouse.places;
+    this.ruined = warehouse.ruined;
     this.canExtend = !warehouse.ruined && extensionsOf(warehouse) < WAREHOUSE.maxExtensions;
     this.rebuild(state);
   }
@@ -175,7 +182,16 @@ export class WarehouseScene implements Scene {
     const p = screenToWorld(this.camera, sx, sy);
     const place = placeAt(p.x, p.y, this.places);
     const site = extensionSite(this.places);
-    if (place !== null) this.select({ kind: 'place', place });
+    if (this.ruined) {
+      // En ruine, seuls les vieux fûts se touchent ; le reste propose la restauration.
+      const cask = place !== null && this.filled.some((c) => c.place === place);
+      if (cask) this.select({ kind: 'place', place });
+      else {
+        this.clearSelection();
+        this.selection = { kind: 'ruin' };
+        this.handlers.select(this.warehouseId, this.selection);
+      }
+    } else if (place !== null) this.select({ kind: 'place', place });
     else if (this.canExtend && p.x >= site.x0 && p.x < site.x1 && p.y < RACK_FLOOR + 20)
       this.select({ kind: 'extension' });
     else {
@@ -329,10 +345,27 @@ export class WarehouseScene implements Scene {
 
     this.hall.removeChildren().forEach((c) => c.destroy({ children: true }));
     const seed = 31 + (this.warehouseId ?? 0);
-    const drawn = () => drawHall(createRng(seed), this.places, this.canExtend, width);
+    const drawn = () => drawHall(createRng(seed), this.places, this.canExtend, width, this.ruined);
     for (const slice of slices(drawn, width)) this.hall.addChild(slice);
 
     this.shafts.clear();
+    // Le jour tombe en grands puits par les trous du toit.
+    if (this.ruined) {
+      for (const x of ruinHoles(width)) {
+        this.shafts
+          .poly([
+            x - 40,
+            HALL_TOP - 60,
+            x + 40,
+            HALL_TOP - 60,
+            x + 130,
+            RACK_FLOOR + 40,
+            x - 10,
+            RACK_FLOOR + 40,
+          ])
+          .fill({ color: C.daylight, alpha: 0.1 });
+      }
+    }
     for (const x of windowXs(cols)) {
       this.shafts
         .poly([
@@ -382,7 +415,7 @@ export class WarehouseScene implements Scene {
     }
 
     this.lamps.removeChildren().forEach((c) => c.destroy({ children: true }));
-    for (let col = 2; col < cols; col += 6) {
+    for (let col = 2; col < cols && !this.ruined; col += 6) {
       const x = columnX(col) + CHAI.colWidth / 2;
       const lamp = new Container();
       const glow = new Graphics()
@@ -415,8 +448,9 @@ export class WarehouseScene implements Scene {
         const c = placeCenter(place);
         if (c.x < x0 || c.x > x1) continue;
         const cask = byPlace.get(place);
-        if (!cask) drawEmptyPlace(empty, c.x, c.y);
-        else
+        if (!cask) {
+          if (!this.ruined) drawEmptyPlace(empty, c.x, c.y);
+        } else
           drawCask(content, createRng(cask.id * 131), c.x, c.y, {
             type: cask.type,
             id: cask.id,

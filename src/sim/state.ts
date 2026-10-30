@@ -3,7 +3,7 @@ import type { Journal } from './journal';
 import { emptyLot, type Lot } from './profile';
 import { createStartingFields, type Field } from './systems/fields';
 import { syncMachines, type Machine } from './systems/production';
-import type { Cask } from './systems/warehouse';
+import { createInheritedCasks, type Cask } from './systems/warehouse';
 import {
   createStartingBuilding,
   createStartingWarehouse,
@@ -27,6 +27,8 @@ export interface Stocks {
 /** Ventes du mois en cours aux cavistes (volume plafonné). */
 export interface MarketState {
   retailBottlesThisMonth: number;
+  /** Fûts vendus au courtier ce mois-ci. */
+  casksSoldThisMonth: number;
 }
 
 export interface Employee {
@@ -109,10 +111,12 @@ export function createInitialState(seed: number): GameState {
     fields,
     stocks: { barley: emptyLot(), malt: emptyLot(), newMake: emptyLot(), gin: 0 },
     casks: [],
-    market: { retailBottlesThisMonth: 0 },
+    market: { retailBottlesThisMonth: 0, casksSoldThisMonth: 0 },
     journal: { entries: [], monthly: [] },
     nextId,
   };
   syncMachines(state, true);
+  // Le grand-oncle a laissé quelques vieux fûts dans le chai en ruine.
+  state.casks = createInheritedCasks(state);
   return state;
 }

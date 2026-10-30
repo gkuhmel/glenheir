@@ -1,5 +1,5 @@
 import type { Game } from '../app/game';
-import { BUILDING, WAREHOUSE } from '../data/balance';
+import { BUILDING } from '../data/balance';
 import { ROOM_TYPES, type RoomType } from '../data/content';
 import { formatMoney, t, type MessageKey } from '../i18n';
 import type { InteriorSelection } from '../render/interior/interior-scene';
@@ -136,27 +136,5 @@ export class BuildingPanel {
     );
     body.append(this.cashLine());
     return { title: t('building.buyTitle'), body };
-  }
-
-  forWarehouse(warehouseId: number): PanelContent | null {
-    const index = this.game.state.warehouses.findIndex((w) => w.id === warehouseId);
-    const warehouse = this.game.state.warehouses[index];
-    if (!warehouse) return null;
-    const body = el('div', 'panel');
-    const title = t('warehouse.title', { n: index + 1 });
-    if (warehouse.ruined) {
-      body.append(el('p', 'panel-desc', t('warehouse.ruinedDesc', { places: warehouse.places })));
-      body.append(
-        this.action(
-          t('warehouse.restore', { cost: formatMoney(WAREHOUSE.restoreCost) }),
-          () => this.run({ type: 'restoreWarehouse', warehouseId }, t('warehouse.restored')),
-          WAREHOUSE.restoreCost,
-        ),
-      );
-      body.append(this.cashLine());
-    } else {
-      body.append(el('p', 'panel-desc', t('warehouse.ready', { places: warehouse.places })));
-    }
-    return { title, body };
   }
 }

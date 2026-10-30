@@ -115,6 +115,7 @@ async function main(): Promise<void> {
       if (!selection) ui.closePanel();
       else if (selection.kind === 'place')
         ui.showPanel(() => cellar.forPlace(warehouseId, selection.place));
+      else if (selection.kind === 'ruin') ui.showPanel(() => cellar.forRuin(warehouseId));
       else ui.showPanel(() => cellar.forExtension(warehouseId));
     },
   });
@@ -127,6 +128,8 @@ async function main(): Promise<void> {
       warehouse.setState(game.state);
       stage.show(warehouse);
       ui.setScene('warehouse');
+      if (game.state.warehouses.find((w) => w.id === id)?.ruined)
+        showToast(t('warehouse.ruinHint'), 5000);
     });
   const map = new MapScene(stage.invalidate, {
     openDistillery: () =>
@@ -136,11 +139,8 @@ async function main(): Promise<void> {
         stage.show(interior);
         ui.setScene('interior');
       }),
-    selectWarehouse: (id) => {
-      // Un chai restauré s'ouvre directement ; en ruine, on propose de le restaurer.
-      if (game.state.warehouses.find((w) => w.id === id)?.ruined === false) enterWarehouse(id);
-      else ui.showPanel(() => panel.forWarehouse(id));
-    },
+    // Même en ruine, on entre : les fûts du grand-oncle y attendent.
+    selectWarehouse: (id) => enterWarehouse(id),
     selectField: (id) => ui.showPanel(() => production.forField(id)),
   });
   goToMap = () =>
