@@ -8,7 +8,7 @@ import { syncMachines } from '../sim/systems/production';
 export type Migration = (state: unknown) => unknown;
 
 /** Version actuelle du format de sauvegarde. */
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /**
  * Migrations indexées par version de départ : `migrations[1]` transforme un
@@ -52,8 +52,20 @@ export const migrations: Record<number, Migration> = {
       fields,
       stocks: { barley: emptyLot(), malt: emptyLot(), newMake: emptyLot() },
       nextId: old.nextId + fields.length,
-    } as GameState;
+    } as unknown as GameState;
     syncMachines(next, true);
+    return next;
+  },
+  // v4 → v5 (étape 5) : fûts, gin, ventes aux cavistes, machine de l'atelier gin.
+  4: (state) => {
+    const old = state as GameState;
+    const next = {
+      ...old,
+      stocks: { ...old.stocks, gin: 0 },
+      casks: [],
+      market: { retailBottlesThisMonth: 0 },
+    } as GameState;
+    syncMachines(next);
     return next;
   },
 };

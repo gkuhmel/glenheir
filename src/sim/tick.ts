@@ -5,6 +5,7 @@ import type { GameState } from './state';
 import { runFields } from './systems/fields';
 import { runMonthlyFinance } from './systems/finance';
 import { runProduction } from './systems/production';
+import { runWarehouses } from './systems/warehouse';
 import { toGameDate, type Season } from './time';
 
 export type SimEvent =
@@ -33,7 +34,11 @@ export type SimEvent =
   | { type: 'distilled'; hour: number; roomId: number; lpa: number }
   | { type: 'stillsReady'; hour: number; roomId: number }
   | { type: 'machineChanged'; hour: number; roomId: number }
-  | { type: 'traded'; hour: number };
+  | { type: 'traded'; hour: number }
+  | { type: 'ginBottled'; hour: number; roomId: number; bottles: number }
+  | { type: 'caskFilled'; hour: number; caskId: number }
+  | { type: 'caskMatured'; hour: number; caskId: number; years: number }
+  | { type: 'warehouseExtended'; hour: number; warehouseId: number };
 
 /**
  * Avance l'état d'une heure de jeu (modifie `state` en place) et renvoie les
@@ -43,7 +48,7 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
   state.time.hour += 1;
   const hour = state.time.hour;
   const date = toGameDate(hour);
-  const events: SimEvent[] = runProduction(state);
+  const events: SimEvent[] = [...runProduction(state), ...runWarehouses(state)];
   if (date.hour !== 0) return events;
 
   events.push({ type: 'dayStarted', hour });
@@ -55,6 +60,7 @@ export function tick(state: GameState, rng: Rng): SimEvent[] {
   events.push(...runFields(state, rng));
   if (date.day === 1) {
     events.push({ type: 'monthStarted', hour, month: date.month });
+    state.market.retailBottlesThisMonth = 0;
     events.push(...runMonthlyFinance(state));
   }
   return events;

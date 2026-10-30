@@ -62,5 +62,16 @@ export function machineStatus(state: GameState, machine: Machine): MachineStatus
       }
       if (machine.orders === 0) return stopped;
       return { text: t('machine.waitWash'), running: false };
+    case 'gin':
+      if (machine.batch) {
+        return {
+          text: t('machine.gin.running', {
+            time: formatShortDuration(remainingHours(machine.batch)),
+          }),
+          running: true,
+        };
+      }
+      if (machine.orders === 0) return stopped;
+      return { text: t('machine.waitNewMake'), running: false };
   }
 }

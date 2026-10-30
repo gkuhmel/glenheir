@@ -1,5 +1,5 @@
 import type { Game } from '../app/game';
-import { BARLEY_VARIETIES, MARKET, PRODUCTION, TERROIRS } from '../data/balance';
+import { BARLEY_VARIETIES, GIN, MARKET, PRODUCTION, TERROIRS } from '../data/balance';
 import { formatMoney, formatNumber, formatShortDuration, t, type MessageKey } from '../i18n';
 import type { Command } from '../sim/commands';
 import { PROFILE_AXES, type Profile } from '../sim/profile';
@@ -143,6 +143,27 @@ export class ProductionPanels {
         return [status, this.fermentationSection(machine)];
       case 'distillation':
         return [status, ...this.stillSections(machine)];
+      case 'gin':
+        return [
+          status,
+          el(
+            'p',
+            'panel-desc',
+            t('gin.recipe', {
+              bottles: GIN.batchBottles,
+              lpa: amount(GIN.batchBottles * GIN.lpaPerBottle),
+            }),
+          ),
+          this.stockLine(
+            'stock.newMake',
+            t('stock.lpa', { amount: amount(state.stocks.newMake.amount) }),
+          ),
+          this.stockLine(
+            'stock.gin',
+            t('stock.bottles', { amount: formatNumber(state.stocks.gin) }),
+          ),
+          this.ordersSection(machine),
+        ];
     }
   }
 

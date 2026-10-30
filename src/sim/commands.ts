@@ -1,11 +1,14 @@
-import { DEBUG, FINANCE, PRODUCTION, WAREHOUSE } from '../data/balance';
+import { CASKS, DEBUG, FINANCE, GIN, MARKET, PRODUCTION, WAREHOUSE } from '../data/balance';
 import type { RoomType } from '../data/content';
 import { recordTransaction, roundMoney } from './journal';
 import { addToLot, baseProfile, takeFromLot } from './profile';
 import { createRng } from './rng';
 import type { GameState, Terroir } from './state';
 import { canSowAt, harvest, isRipe, seedCost, sow, type BarleyVariety } from './systems/fields';
+import { exciseFor } from './systems/finance';
 import { barleyPrice, newMakeValue } from './systems/market';
+import { ageAllCasks, caskCapacityLpa, extensionsOf, type CaskType } from './systems/warehouse';
+import { HOURS_PER_YEAR } from './time';
 import {
   syncMachines,
   type Cut,
@@ -36,6 +39,10 @@ export type Command =
   | { type: 'setCut'; roomId: number; cut: Cut }
   | { type: 'restoreStills'; roomId: number }
   | { type: 'buyStills'; roomId: number }
+  | { type: 'fillCask'; warehouseId: number; place: number; caskType: CaskType }
+  | { type: 'extendWarehouse'; warehouseId: number }
+  | { type: 'sellGin'; bottles: number }
+  | { type: 'debugAgeCasks'; years: number }
   | { type: 'debugAddCash' };
 
 /** Raison d'un refus, traduite par l'interface (clé `error.<code>`). */
@@ -61,7 +68,12 @@ export type CommandError =
   | 'machineNotFound'
   | 'stillsNotRuined'
   | 'stillsPresent'
-  | 'roomRuined';
+  | 'roomRuined'
+  | 'warehouseRuined'
+  | 'placeTaken'
+  | 'placeInvalid'
+  | 'warehouseFull'
+  | 'retailCapReached';
 
 export type CommandResult = { ok: true; events: SimEvent[] } | { ok: false; error: CommandError };
 
@@ -234,6 +246,70 @@ function buyStills(state: GameState, roomId: number): CommandResult {
   });
 }
 
+function fillCask(
+  state: GameState,
+  warehouseId: number,
+  place: number,
+  caskType: CaskType,
+): CommandResult {
+  const warehouse = state.warehouses.find((w) => w.id === warehouseId);
+  if (!warehouse) return fail('warehouseNotFound');
+  if (warehouse.ruined) return fail('warehouseRuined');
+  if (!Number.isInteger(place) || place < 0 || place >= warehouse.places)
+    return fail('placeInvalid');
+  if (state.casks.some((c) => c.warehouseId === warehouseId && c.place === place))
+    return fail('placeTaken');
+  const capacity = caskCapacityLpa(caskType);
+  // Un fût peut être rempli en partie, mais pas presque vide.
+  if (state.stocks.newMake.amount < capacity * CASKS.minFillShare) return fail('notEnoughStock');
+  if (!invest(state, CASKS.types[caskType].price, 'materials')) return fail('notEnoughCash');
+  const spirit = takeFromLot(state.stocks.newMake, capacity);
+  const rng = createRng(state.rngState);
+  const hint = Math.round(rng.range(-CASKS.estimateSpread, CASKS.estimateSpread));
+  state.rngState = rng.state;
+  const id = state.nextId++;
+  state.casks.push({
+    id,
+    warehouseId,
+    place,
+    type: caskType,
+    fill: 1,
+    filledHour: state.time.hour,
+    maturedHours: 0,
+    lpa: spirit.amount,
+    initialLpa: spirit.amount,
+    spirit: spirit.profile,
+    hint,
+  });
+  return ok(state, [{ type: 'caskFilled', hour: state.time.hour, caskId: id }]);
+}
+
+function extendWarehouse(state: GameState, warehouseId: number): CommandResult {
+  const warehouse = state.warehouses.find((w) => w.id === warehouseId);
+  if (!warehouse) return fail('warehouseNotFound');
+  if (warehouse.ruined) return fail('warehouseRuined');
+  if (extensionsOf(warehouse) >= WAREHOUSE.maxExtensions) return fail('warehouseFull');
+  if (!invest(state, WAREHOUSE.extensionCost)) return fail('notEnoughCash');
+  warehouse.places += WAREHOUSE.extensionPlaces;
+  return ok(state, [{ type: 'warehouseExtended', hour: state.time.hour, warehouseId }]);
+}
+
+/** Gin vendu aux cavistes britanniques : prix plein, accise due, volume plafonné par mois. */
+function sellGin(state: GameState, bottles: number): CommandResult {
+  if (!Number.isInteger(bottles) || bottles <= 0) return fail('amountInvalid');
+  if (bottles > state.stocks.gin) return fail('notEnoughStock');
+  if (state.market.retailBottlesThisMonth + bottles > MARKET.retailMonthlyBottles)
+    return fail('retailCapReached');
+  state.stocks.gin -= bottles;
+  state.market.retailBottlesThisMonth += bottles;
+  recordTransaction(state, bottles * GIN.price, 'sales', { product: 'gin', channel: 'retail' });
+  recordTransaction(state, -exciseFor('retail', bottles), 'excise', {
+    product: 'gin',
+    channel: 'retail',
+  });
+  return ok(state, [{ type: 'traded', hour: state.time.hour }]);
+}
+
 /** Valide puis applique une commande du joueur. */
 export function executeCommand(state: GameState, command: Command): CommandResult {
   if (state.finance.bankrupt) return fail('bankrupt');
@@ -270,7 +346,7 @@ export function executeCommand(state: GameState, command: Command): CommandResul
       return withMachine(
         state,
         command.roomId,
-        ['malting', 'mashing', 'distillation'] as const,
+        ['malting', 'mashing', 'distillation', 'gin'] as const,
         (m) => {
           m.orders = orders;
           return changed(state, command.roomId);
@@ -296,6 +372,15 @@ export function executeCommand(state: GameState, command: Command): CommandResul
       return restoreStills(state, command.roomId);
     case 'buyStills':
       return buyStills(state, command.roomId);
+    case 'fillCask':
+      return fillCask(state, command.warehouseId, command.place, command.caskType);
+    case 'extendWarehouse':
+      return extendWarehouse(state, command.warehouseId);
+    case 'sellGin':
+      return sellGin(state, command.bottles);
+    case 'debugAgeCasks':
+      ageAllCasks(state, Math.round(command.years * HOURS_PER_YEAR));
+      return ok(state);
     case 'debugAddCash':
       recordTransaction(state, DEBUG.cashGift, 'debug');
       return { ok: true, events: [] };

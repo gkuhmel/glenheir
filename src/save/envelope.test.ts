@@ -39,7 +39,7 @@ describe('sauvegarde', () => {
   });
 });
 
-describe('migrations v1 → v4', () => {
+describe('migrations v1 → v5', () => {
   it('reprend une partie de l’étape 1 sans la perdre', () => {
     const v1 = JSON.stringify({
       version: 1,
@@ -57,6 +57,8 @@ describe('migrations v1 → v4', () => {
     expect(state.terroir).toBe('speyside');
     expect(state.terroirChosen).toBe(true);
     expect(state.fields).toHaveLength(2);
+    expect(state.casks).toEqual([]);
+    expect(state.stocks.gin).toBe(0);
     expect(state.machines.map((m) => m.kind).sort()).toEqual([
       'distillation',
       'fermentation',

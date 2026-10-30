@@ -3,6 +3,7 @@ import type { Journal } from './journal';
 import { emptyLot, type Lot } from './profile';
 import { createStartingFields, type Field } from './systems/fields';
 import { syncMachines, type Machine } from './systems/production';
+import type { Cask } from './systems/warehouse';
 import {
   createStartingBuilding,
   createStartingWarehouse,
@@ -19,6 +20,13 @@ export interface Stocks {
   barley: Lot;
   malt: Lot;
   newMake: Lot;
+  /** Bouteilles de gin prêtes à vendre. */
+  gin: number;
+}
+
+/** Ventes du mois en cours aux cavistes (volume plafonné). */
+export interface MarketState {
+  retailBottlesThisMonth: number;
 }
 
 export interface Employee {
@@ -71,6 +79,9 @@ export interface GameState {
   machines: Machine[];
   fields: Field[];
   stocks: Stocks;
+  /** Fûts en vieillissement dans les chais. */
+  casks: Cask[];
+  market: MarketState;
   journal: Journal;
   /** Prochain identifiant libre (employés, prêts…). */
   nextId: number;
@@ -96,7 +107,9 @@ export function createInitialState(seed: number): GameState {
     warehouses: [warehouse],
     machines: [],
     fields,
-    stocks: { barley: emptyLot(), malt: emptyLot(), newMake: emptyLot() },
+    stocks: { barley: emptyLot(), malt: emptyLot(), newMake: emptyLot(), gin: 0 },
+    casks: [],
+    market: { retailBottlesThisMonth: 0 },
     journal: { entries: [], monthly: [] },
     nextId,
   };

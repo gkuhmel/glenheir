@@ -94,6 +94,73 @@ export const ROOM_COSTS = {
 export const WAREHOUSE = {
   restoreCost: 6_000,
   startPlaces: 40,
+  /** Extension : +20 places, le bâtiment s'allonge. */
+  extensionPlaces: 20,
+  extensionCost: 5_000,
+  maxExtensions: 4,
+  /** Fûts empilés sur 3 hauteurs (bas, milieu, haut). */
+  tiers: 3,
+} as const;
+
+/** Fûts et vieillissement. */
+export const CASKS = {
+  /** Le new make est réduit à 63,5 % avant la mise en fût. */
+  fillStrength: 0.635,
+  /** Remplissage minimal d'un fût (part de sa contenance). */
+  minFillShare: 0.2,
+  /** Un fût de 2e remplissage donne des effets réduits de moitié. */
+  refillEffect: 0.5,
+  legalAgeYears: 3,
+  /** Sans maître de chai, la qualité n'est connue qu'à ±15 près. */
+  estimateSpread: 15,
+  types: {
+    exBourbon: {
+      litres: 200,
+      price: 150,
+      speed: 1,
+      /** Années pour atteindre ~63 % de l'effet du fût (courbe 1 − e^(−âge/τ)). */
+      tauYears: 7,
+      profile: { sweet: 22, fruity: 10, woody: 12 },
+      quality: 32,
+      priceFactor: 1,
+    },
+    sherry: {
+      litres: 500,
+      price: 900,
+      speed: 0.9,
+      tauYears: 8,
+      profile: { spicy: 15, fruity: 14, sweet: 8, woody: 10 },
+      quality: 34,
+      priceFactor: 1.2,
+    },
+    newOak: {
+      litres: 200,
+      price: 400,
+      speed: 1.5,
+      tauYears: 4,
+      profile: { woody: 30, sweet: 10, spicy: 6 },
+      quality: 28,
+      priceFactor: 1,
+    },
+  },
+  /** Chêne neuf : au-delà de 8 ans, le whisky est surboisé. */
+  newOakOverage: { afterYears: 8, qualityPerYear: 4 },
+  /** Position dans le chai : en bas plus lent mais meilleur, en haut l'inverse. */
+  tiers: [
+    { speed: 0.85, quality: 4 },
+    { speed: 1, quality: 0 },
+    { speed: 1.2, quality: -3 },
+  ],
+} as const;
+
+/** Gin, produit dans l'atelier gin à partir du new make pendant que le whisky vieillit. */
+export const GIN = {
+  batchBottles: 200,
+  days: 1,
+  lpaPerBottle: 0.28,
+  botanicalsPerBottle: 1.5,
+  /** Vendu aux cavistes britanniques (accise due). */
+  price: 28,
 } as const;
 
 /** Terroirs choisis au démarrage. Les effets visiteurs et export servent aux étapes 8 et 9. */
@@ -158,6 +225,8 @@ export const MARKET = {
   barleySeason: { spring: 1.1, summer: 1.15, autumn: 0.88, winter: 1 },
   /** New make vendu en vrac aux assembleurs : prix fixe, non taxé, volume illimité. */
   newMakePricePerLpa: 4,
+  /** Cavistes britanniques : volume plafonné chaque mois (bouteilles). */
+  retailMonthlyBottles: 300,
 } as const;
 
 export const PRODUCTION = {
@@ -219,7 +288,8 @@ export const MAP = {
   /** Cour de la distillerie en ruine, en tuiles. */
   courtyard: { x: 25, y: 23, width: 14, height: 11 },
   /** Emprise du premier chai, à l'est de la cour, en tuiles. */
-  warehouse: { x: 41, y: 22.5, width: 4, height: 10 },
+  /** Emprise réservée au chai : il s'allonge vers le sud à chaque extension. */
+  warehouse: { x: 41, y: 20.5, width: 4, height: 16 },
   /** Parcelles d'orge (1 ha chacune), au nord de la cour, en tuiles. */
   fields: [
     { x: 26, y: 13, width: 6, height: 7 },

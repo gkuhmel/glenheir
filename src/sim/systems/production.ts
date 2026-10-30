@@ -1,4 +1,4 @@
-import { PRODUCTION, TERROIRS } from '../../data/balance';
+import { GIN, PRODUCTION, TERROIRS } from '../../data/balance';
 import type { RoomType } from '../../data/content';
 import { recordTransaction, roundMoney } from '../journal';
 import { addToLot, applyModifier, takeFromLot, type Profile } from '../profile';
@@ -56,7 +56,16 @@ export interface StillMachine {
   batch: Batch | null;
 }
 
-export type Machine = MaltingMachine | MashingMachine | FermentationMachine | StillMachine;
+/** Atelier gin : du new make et des botaniques, des bouteilles au bout d'un jour. */
+export interface GinMachine {
+  kind: 'gin';
+  roomId: number;
+  orders: Orders;
+  batch: Batch | null;
+}
+
+export type Machine =
+  MaltingMachine | MashingMachine | FermentationMachine | StillMachine | GinMachine;
 
 const HOURS_PER_DAY = TIME.hoursPerDay;
 
@@ -84,6 +93,8 @@ export function createMachine(room: Room, startingStills: boolean): Machine | nu
         cut: 'medium',
         batch: null,
       };
+    case 'ginWorkshop':
+      return { kind: 'gin', roomId: room.id, orders: 0, batch: null };
     default:
       return null;
   }
@@ -279,6 +290,42 @@ function runMalting(
   events.push({ type: 'batchStarted', hour, roomId: machine.roomId });
 }
 
+function runGin(
+  state: GameState,
+  machine: GinMachine,
+  efficiency: number,
+  events: SimEvent[],
+): void {
+  const hour = state.time.hour;
+  if (machine.batch) {
+    machine.batch.elapsed += efficiency;
+    if (!isDone(machine.batch)) return;
+    state.stocks.gin += machine.batch.amount;
+    events.push({
+      type: 'ginBottled',
+      hour,
+      roomId: machine.roomId,
+      bottles: machine.batch.amount,
+    });
+    machine.batch = null;
+    return;
+  }
+  const lpa = GIN.batchBottles * GIN.lpaPerBottle;
+  if (!hasOrders(machine.orders) || state.stocks.newMake.amount < lpa) return;
+  const spirit = takeFromLot(state.stocks.newMake, lpa);
+  recordTransaction(state, -roundMoney(GIN.batchBottles * GIN.botanicalsPerBottle), 'materials', {
+    product: 'botanicals',
+  });
+  machine.batch = {
+    amount: GIN.batchBottles,
+    profile: spirit.profile,
+    elapsed: efficiency,
+    duration: GIN.days * HOURS_PER_DAY,
+  };
+  consumeOrder(machine);
+  events.push({ type: 'batchStarted', hour, roomId: machine.roomId });
+}
+
 /**
  * Une heure de production, de l'aval vers l'amont pour libérer la place au plus
  * tôt : alambics, cuves, brasserie, malterie. Seules les salles en état tournent ;
@@ -287,7 +334,7 @@ function runMalting(
 export function runProduction(state: GameState): SimEvent[] {
   const events: SimEvent[] = [];
   const active = workingRooms(state.building);
-  const order: Machine['kind'][] = ['distillation', 'fermentation', 'mashing', 'malting'];
+  const order: Machine['kind'][] = ['gin', 'distillation', 'fermentation', 'mashing', 'malting'];
   for (const kind of order) {
     for (const machine of state.machines) {
       if (machine.kind !== kind) continue;
@@ -305,6 +352,9 @@ export function runProduction(state: GameState): SimEvent[] {
           break;
         case 'malting':
           runMalting(state, machine, efficiency, events);
+          break;
+        case 'gin':
+          runGin(state, machine, efficiency, events);
           break;
       }
     }
