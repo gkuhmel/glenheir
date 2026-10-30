@@ -282,5 +282,13 @@
   "absence.producedMalt": "{amount} t of malt",
   "absence.producedNewMake": "{amount} LPA of new make",
   "duration.shortDays": "{d}d",
-  "field.sowButton": "Sow · {cost}"
+  "field.sowButton": "Sow · {cost}",
+  "menu.open": "Open the menu",
+  "menu.title": "Menu",
+  "menu.testTools": "Test tools",
+  "menu.testToolsDesc": "Shows the DBG button at the bottom left: speed up time, skip days, add money, export the save.",
+  "menu.testOn": "Test tools: on",
+  "menu.testOff": "Test tools: off",
+  "menu.game": "Game",
+  "menu.version": "Glenheir · version {version}"
 }

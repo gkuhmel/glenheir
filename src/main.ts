@@ -1,5 +1,10 @@
 import { Game } from './app/game';
-import { isDebugRequested, mountDebugPanel, type DebugPanel } from './debug/panel';
+import {
+  isDebugRequested,
+  mountDebugPanel,
+  saveDebugPreference,
+  type DebugPanel,
+} from './debug/panel';
 import { t } from './i18n';
 import { InteriorScene } from './render/interior/interior-scene';
 import { MapScene } from './render/map/map-scene';
@@ -8,6 +13,7 @@ import { startAutosave } from './save/autosave';
 import { mountUi } from './ui';
 import { showAbsence } from './ui/absence';
 import { BuildingPanel } from './ui/building-panel';
+import { menuPanel } from './ui/menu-panel';
 import { ProductionPanels } from './ui/production-panels';
 import { showTerroirChoice } from './ui/terroir';
 import { showToast } from './ui/toast';
@@ -55,16 +61,29 @@ async function main(): Promise<void> {
   const panel = new BuildingPanel(game);
   const production = new ProductionPanels(game);
 
+  // Outils de test : bouton DBG activé depuis le Menu (ou avec ?debug dans l'adresse).
   let debug: DebugPanel | null = null;
-  const openDebug = () => {
-    debug ??= mountDebugPanel(uiRoot, game, false);
-    debug.toggle();
+  let debugEnabled = false;
+  const setDebug = (enabled: boolean) => {
+    debugEnabled = enabled;
+    saveDebugPreference(enabled);
+    if (enabled) debug ??= mountDebugPanel(uiRoot, game, false);
+    debug?.setEnabled(enabled);
+    // Accès à la partie depuis la console du navigateur, pour les tests.
+    Object.assign(window, { glenheir: enabled ? game : undefined });
   };
 
   let goToMap = () => {};
   let interiorScene: InteriorScene | null = null;
   const ui = mountUi(uiRoot, game, {
-    onSecretGesture: openDebug,
+    menuContent: () =>
+      menuPanel(game, {
+        debugEnabled: () => debugEnabled,
+        setDebug: (enabled) => {
+          setDebug(enabled);
+          ui.refreshPanel();
+        },
+      }),
     onBack: () => goToMap(),
     onPanelClosed: () => interiorScene?.clearSelection(),
     onBuildMode: (on) => interiorScene?.setBuildMode(on),
@@ -120,11 +139,7 @@ async function main(): Promise<void> {
   });
   askTerroir();
 
-  if (isDebugRequested()) {
-    openDebug();
-    // Accès à la partie depuis la console du navigateur, pour les tests.
-    Object.assign(window, { glenheir: game });
-  }
+  if (isDebugRequested()) setDebug(true);
   if (game.loadError) showToast(t('load.corrupt'), 6000);
   if (game.startSummary) showAbsence(game.startSummary);
   // Retour au premier plan : rattrapage immédiat et résumé si l'absence a été longue.

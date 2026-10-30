@@ -123,8 +123,8 @@ button {
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: auto auto 1fr;
-  gap: 14px;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 12px;
   align-items: center;
   padding: calc(var(--safe-top) + 6px) calc(var(--safe-right) + 12px) 6px
     calc(var(--safe-left) + 12px);
@@ -210,21 +210,42 @@ button {
   margin-top: 2px;
 }
 
+.stat-detail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Petite icône de saison devant « An 1 · Printemps · 8 h ». */
 .season-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1.5px solid var(--brass-dark);
-  background: radial-gradient(circle at 35% 30%, var(--wood-light), var(--wood-dark));
+  display: inline-flex;
   color: var(--brass-light);
-  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.12);
 }
 
 .icon-season {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
+}
+
+/* Bouton Menu : médaillon de laiton. */
+.menu-button {
+  display: grid;
+  place-items: center;
+  width: var(--touch);
+  height: var(--touch);
+  padding: 0;
+  border: 1.5px solid var(--brass-dark);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--wood-light), var(--wood-dark));
+  color: var(--brass-light);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.12);
+  cursor: pointer;
+}
+
+.menu-button .icon {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2;
 }
 
 /* Barre du bas */
@@ -460,7 +481,7 @@ button {
 }
 
 /* Petits écrans (iPhone SE) : les icônes remplacent les libellés, toujours lus par VoiceOver. */
-@media (max-width: 374px) {
+@media (max-width: 440px) {
   .topbar {
     gap: 10px;
     padding-left: calc(var(--safe-left) + 8px);
@@ -485,9 +506,9 @@ button {
     font-size: 12px;
   }
 
-  .season-icon {
-    width: 28px;
-    height: 28px;
+  .menu-button {
+    width: 40px;
+    height: 40px;
   }
 }
 
@@ -1049,4 +1070,21 @@ button.stat {
 .terroir-option .parchment-button {
   width: 100%;
   margin-top: 8px;
+}
+
+/* Très petits écrans (iPhone SE, 320 px) : espacements et date resserrés. */
+@media (max-width: 359px) {
+  .topbar {
+    gap: 6px;
+    padding-left: calc(var(--safe-left) + 6px);
+    padding-right: calc(var(--safe-right) + 6px);
+  }
+
+  .stat-date .stat-value {
+    font-size: 16px;
+  }
+
+  .stat-date .stat-label {
+    font-size: 11px;
+  }
 }

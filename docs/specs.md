@@ -289,7 +289,7 @@ Tout est dessiné en code (formes vectorielles, dégradés, lumières) dans l'es
 
 - **Carte** : pan à un doigt, zoom au pincement ; taper la distillerie ou un chai fait entrer dans sa vue intérieure (transition zoomée), taper un champ ou un personnage ouvre sa fiche.
 - **Vues intérieures** : pan horizontal et zoom ; taper une machine, une salle, un emplacement ou un fût donne ses actions directement dans la scène (le tiroir s'ouvre et la caméra garde l'élément touché visible au-dessus) ; bouton « Domaine » pour ressortir.
-- **Barre du haut** : trésorerie, renommée, date de jeu et saison.
+- **Barre du haut** : trésorerie (ouvre les finances), renommée, date de jeu et saison, bouton Menu (outils de test, nouvelle partie).
 - **Barre du bas** (5 onglets) : Domaine (la carte), Production, Chai, Marché, Équipe.
 - **Panneaux en tiroir** qui montent du bas, utilisables au pouce, la carte reste visible au-dessus.
 - **Mode construction** : dans la vue intérieure, le bouton « Agrandir » fait apparaître en pointillés les emplacements achetables avec leur prix ; on en touche un pour l'acheter, puis on touche l'emplacement vide pour choisir la salle ; sur la carte, grille visible et fantôme pour les parcelles et les chais.
@@ -367,7 +367,7 @@ src/
 
 ### Panneau de test (debug)
 
-Accessible par un geste caché ou `?debug` dans l'URL : accélérer le temps (×10, ×100), ajouter de l'argent, faire vieillir tous les fûts d'un an, déclencher un événement, afficher l'état brut.
+Activé depuis le Menu (bouton ☰ de la barre du haut, interrupteur « Outils de test » mémorisé sur l'appareil) ou avec `?debug` dans l'URL : accélérer le temps (×10, ×100), ajouter de l'argent, faire vieillir tous les fûts d'un an, déclencher un événement, afficher l'état brut.
 
 ## Plan de développement pour Claude Code
 

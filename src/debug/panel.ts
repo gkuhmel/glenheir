@@ -7,11 +7,29 @@ import './panel.css';
 
 export interface DebugPanel {
   toggle(): void;
+  /** Affiche ou masque le bouton DBG (et ferme le panneau quand on le masque). */
+  setEnabled(enabled: boolean): void;
 }
 
-/** Le panneau est disponible avec `?debug` dans l'URL, ou par le geste caché. */
+const PREFERENCE_KEY = 'glenheir:debug';
+
+/** Outils de test : activés depuis le Menu (mémorisé sur l'appareil) ou avec `?debug` dans l'URL. */
 export function isDebugRequested(): boolean {
-  return new URLSearchParams(window.location.search).has('debug');
+  if (new URLSearchParams(window.location.search).has('debug')) return true;
+  try {
+    return localStorage.getItem(PREFERENCE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function saveDebugPreference(enabled: boolean): void {
+  try {
+    if (enabled) localStorage.setItem(PREFERENCE_KEY, '1');
+    else localStorage.removeItem(PREFERENCE_KEY);
+  } catch {
+    // Stockage indisponible (navigation privée) : le réglage vaut pour la session.
+  }
 }
 
 const button = (label: string, onClick: () => void, className = '') => {
@@ -137,5 +155,11 @@ export function mountDebugPanel(root: HTMLElement, game: Game, startOpen: boolea
 
   loop.onTick(refresh);
   if (startOpen) toggle();
-  return { toggle };
+  return {
+    toggle,
+    setEnabled(enabled) {
+      panel.hidden = true;
+      fab.hidden = !enabled;
+    },
+  };
 }

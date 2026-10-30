@@ -3,9 +3,6 @@ import type { GameState } from '../sim/state';
 import { toGameDate, type Season } from '../sim/time';
 import { COIN_ICON, SEASON_ICONS, THISTLE_ICON } from './icons';
 
-const SECRET_TAPS = 5;
-const SECRET_WINDOW_MS = 2_000;
-
 export interface TopBar {
   element: HTMLElement;
   update(state: GameState): void;
@@ -22,11 +19,11 @@ export function formatDate(hour: number): { date: string; detail: string; season
   };
 }
 
-/**
- * Barre du haut : trésorerie, renommée, date et saison.
- * Cinq taps rapides sur la date ouvrent le panneau de debug (geste caché).
- */
-export function createTopBar(onSecretGesture: () => void, onCashTap: () => void): TopBar {
+const MENU_ICON =
+  '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>';
+
+/** Barre du haut : trésorerie, renommée, date et saison, bouton Menu. */
+export function createTopBar(onMenu: () => void, onCashTap: () => void): TopBar {
   const element = document.createElement('header');
   element.className = 'topbar';
   element.innerHTML = `
@@ -39,34 +36,26 @@ export function createTopBar(onSecretGesture: () => void, onCashTap: () => void)
       <div class="stat-text"><span class="stat-label"></span><span class="stat-value"></span></div>
     </div>
     <div class="stat stat-date">
-      <div class="stat-text"><span class="stat-value"></span><span class="stat-label"></span></div>
-      <span class="season-icon"></span>
-    </div>`;
+      <div class="stat-text"><span class="stat-value"></span><span class="stat-detail"><span class="season-icon"></span><span class="stat-label"></span></span></div>
+    </div>
+    <button type="button" class="menu-button">${MENU_ICON}</button>`;
   const [cashLabel, cashValue] = element.querySelectorAll<HTMLElement>(
     '.stat-cash .stat-text span',
   );
   const [renownLabel, renownValue] = element.querySelectorAll<HTMLElement>(
     '.stat-renown .stat-text span',
   );
-  const [dateValue, dateDetail] = element.querySelectorAll<HTMLElement>(
-    '.stat-date .stat-text span',
-  );
+  const dateValue = element.querySelector<HTMLElement>('.stat-date .stat-value')!;
+  const dateDetail = element.querySelector<HTMLElement>('.stat-date .stat-label')!;
+  const menuButton = element.querySelector<HTMLButtonElement>('.menu-button')!;
+  menuButton.setAttribute('aria-label', t('menu.open'));
+  menuButton.addEventListener('click', onMenu);
   const seasonIcon = element.querySelector<HTMLElement>('.season-icon')!;
   cashLabel!.textContent = t('topbar.cash');
   const cashButton = element.querySelector<HTMLButtonElement>('.stat-cash')!;
   cashButton.setAttribute('aria-label', t('topbar.openFinance'));
   cashButton.addEventListener('click', onCashTap);
   renownLabel!.textContent = t('topbar.renown');
-
-  let taps: number[] = [];
-  element.querySelector('.stat-date')!.addEventListener('click', (event) => {
-    const now = event.timeStamp;
-    taps = [...taps.filter((time) => now - time < SECRET_WINDOW_MS), now];
-    if (taps.length >= SECRET_TAPS) {
-      taps = [];
-      onSecretGesture();
-    }
-  });
 
   let last = '';
   return {
@@ -79,8 +68,8 @@ export function createTopBar(onSecretGesture: () => void, onCashTap: () => void)
       cashValue!.textContent = formatMoney(state.finance.cash);
       cashButton.classList.toggle('negative', state.finance.cash < 0);
       renownValue!.textContent = formatNumber(state.renown);
-      dateValue!.textContent = date;
-      dateDetail!.textContent = detail;
+      dateValue.textContent = date;
+      dateDetail.textContent = detail;
       if (seasonIcon.dataset.season !== season) {
         seasonIcon.dataset.season = season;
         seasonIcon.innerHTML = SEASON_ICONS[season];

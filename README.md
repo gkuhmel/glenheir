@@ -21,7 +21,7 @@ Pour tester sur iPhone en local : lancer `npm run dev` et ouvrir l'adresse rése
 
 ## Panneau de debug
 
-Ajouter `?debug` à l'URL, ou toucher 5 fois rapidement la date dans la barre du haut. Il permet d'accélérer le temps (×10, ×100), d'avancer d'une heure, d'un jour ou d'une saison, d'exporter/importer la sauvegarde en texte et de recommencer une partie.
+Ouvrir le Menu (bouton ☰ en haut à droite) et activer « Outils de test » : un bouton DBG apparaît en bas à gauche, et le réglage est mémorisé sur l'appareil. On peut aussi ajouter `?debug` à l'adresse. Il permet d'accélérer le temps (×10, ×100), d'avancer d'une heure, d'un jour ou d'une saison, d'exporter/importer la sauvegarde en texte et de recommencer une partie.
 
 ## Déploiement (Cloudflare Workers)
 

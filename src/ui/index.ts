@@ -26,11 +26,14 @@ export interface Ui {
   /** Ouvre le tiroir avec un contenu recalculé à chaque changement d'état. */
   showPanel(provider: () => PanelContent | null): void;
   closePanel(): void;
+  /** Redessine le tiroir ouvert (après un réglage qui ne change pas l'état du jeu). */
+  refreshPanel(): void;
   setScene(scene: SceneId): void;
 }
 
 export interface UiHandlers {
-  onSecretGesture(): void;
+  /** Contenu du tiroir Menu. */
+  menuContent(): PanelContent;
   /** Retour de la vue intérieure à la carte du domaine. */
   onBack(): void;
   /** Le tiroir d'une sélection a été fermé par le joueur. */
@@ -50,6 +53,8 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
   let scene: SceneId = 'map';
   let panelProvider: (() => PanelContent | null) | null = null;
   let panelKey = '';
+  /** Le tiroir affiche le Menu (le toucher à nouveau le referme). */
+  let menuOpen = false;
   const finance = createFinancePanel(game);
 
   const resetTab = () => {
@@ -64,14 +69,24 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
     if (wasPanel) handlers.onPanelClosed();
   };
 
-  const topBar = createTopBar(handlers.onSecretGesture, () => {
-    if (mode === 'finance' && drawer.isOpen) return closeDrawer();
-    if (mode === 'panel') handlers.onPanelClosed();
-    finance.render();
-    drawer.open(t('finance.title'), finance.element);
-    mode = 'finance';
-    resetTab();
-  });
+  const topBar = createTopBar(
+    () => {
+      if (mode === 'panel' && drawer.isOpen && menuOpen) {
+        closeDrawer();
+        return;
+      }
+      openPanel(() => handlers.menuContent());
+      menuOpen = true;
+    },
+    () => {
+      if (mode === 'finance' && drawer.isOpen) return closeDrawer();
+      if (mode === 'panel') handlers.onPanelClosed();
+      finance.render();
+      drawer.open(t('finance.title'), finance.element);
+      mode = 'finance';
+      resetTab();
+    },
+  );
   const drawer = createDrawer(() => {
     const wasPanel = mode === 'panel';
     mode = 'none';
@@ -106,6 +121,7 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
   root.append(topBar.element, header.element, drawer.element, bottomBar.element);
 
   const openPanel = (provider: () => PanelContent | null, tab: TabId = 'map') => {
+    menuOpen = false;
     panelProvider = provider;
     panelKey = '';
     mode = tab === 'map' ? 'panel' : 'tab';
@@ -148,6 +164,10 @@ export function mountUi(root: HTMLElement, game: Game, handlers: UiHandlers): Ui
       right: 0,
     }),
     showPanel: (provider) => openPanel(provider),
+    refreshPanel: () => {
+      panelKey = '';
+      if (drawer.isOpen && panelProvider) renderPanel();
+    },
     closePanel: () => {
       if (mode === 'panel') {
         drawer.close();

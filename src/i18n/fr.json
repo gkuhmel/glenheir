@@ -282,5 +282,13 @@
   "absence.producedMalt": "{amount} t de malt",
   "absence.producedNewMake": "{amount} LPA de new make",
   "duration.shortDays": "{d} j",
-  "field.sowButton": "Semer · {cost}"
+  "field.sowButton": "Semer · {cost}",
+  "menu.open": "Ouvrir le menu",
+  "menu.title": "Menu",
+  "menu.testTools": "Outils de test",
+  "menu.testToolsDesc": "Affiche le bouton DBG en bas à gauche : accélérer le temps, sauter des jours, ajouter de l'argent, exporter la sauvegarde.",
+  "menu.testOn": "Outils de test : activés",
+  "menu.testOff": "Outils de test : désactivés",
+  "menu.game": "Partie",
+  "menu.version": "Glenheir · version {version}"
 }
